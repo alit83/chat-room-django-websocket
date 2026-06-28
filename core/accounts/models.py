@@ -32,7 +32,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, username, password, **extra_fields):
         """
-        create and save super user with email
+        create and save super user with username
         """
 
         extra_fields.setdefault("is_active", True)

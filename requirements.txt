@@ -2,5 +2,7 @@
 django >5.2,< 5.3
 python-decouple==3.8
 pillow==12.2.0
+djangorestframework==3.17.1
+djangorestframework-simplejwt==5.5.1
 #db module
 psycopg[binary]
