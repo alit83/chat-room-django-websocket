@@ -68,8 +68,8 @@ class Profile(models.Model):
     )
     first_name = models.CharField(max_length=250)
     last_name = models.CharField(max_length=250)
-    profile = models.ImageField(
-        upload_to="profiles/"
+    avatar = models.ImageField(
+        upload_to="profiles/", null=True , blank=True
     )
     gender = models.IntegerField(
         choices=ProfileGender.choices, null=True, blank=True

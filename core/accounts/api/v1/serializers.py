@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
-from accounts.models import User
+from accounts.models import User , Profile
 from django.core import exceptions
 
 
@@ -32,3 +32,9 @@ class CustomeTokenObtainPairSerializer(TokenObtainPairSerializer):
         validated_data = super().validate(attrs)
         validated_data['username'] = self.user.username
         return validated_data
+    
+class ProfileSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Profile
+        fields = ['first_name','last_name','gender','avatar']

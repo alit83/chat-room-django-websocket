@@ -146,3 +146,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
+
+#rest framework configuratio
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ]
+}
