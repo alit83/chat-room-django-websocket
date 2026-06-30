@@ -1,4 +1,5 @@
 from rest_framework import generics , status
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.response import Response
 from .serializers import SignUpApiSerializer , CustomeTokenObtainPairSerializer , ProfileSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -19,6 +20,7 @@ class SignUpApiView(generics.GenericAPIView):
     
 
 class LoginApiView(TokenObtainPairView):
+    throttle_classes = [UserRateThrottle]
     serializer_class = CustomeTokenObtainPairSerializer
 
 class ProfileDetailsApiView(generics.RetrieveAPIView):
