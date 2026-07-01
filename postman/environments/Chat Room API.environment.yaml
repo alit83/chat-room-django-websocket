@@ -1,0 +1,12 @@
+name: Chat Room API
+values:
+  - key: base_url
+    value: 'http://localhost:8000'
+  - key: access_token
+    value: ''
+  - key: refresh_token
+    value: ''
+  - key: username
+    value: testuser@example.com
+  - key: password
+    value: TestPass123!

@@ -1,0 +1,28 @@
+$kind: http-request
+method: POST
+url: '{{base_url}}/accounts/api/v1/registration/'
+order: 1000
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "{{username}}",
+      "password": "TestPass123!",
+      "password1": "TestPass123!"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 201", function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Response has email field", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("email");
+      });

@@ -1,0 +1,18 @@
+$kind: http-request
+method: GET
+url: '{{base_url}}/accounts/api/v1/profile/details/'
+order: 5000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Response has profile fields", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("first_name");
+          pm.expect(json).to.have.property("last_name");
+          pm.expect(json).to.have.property("gender");
+          pm.expect(json).to.have.property("avatar");
+      });

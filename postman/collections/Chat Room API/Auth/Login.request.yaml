@@ -1,0 +1,37 @@
+$kind: http-request
+method: POST
+url: '{{base_url}}/accounts/api/v1/login/'
+order: 2000
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "{{username}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Response has access token", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("access");
+          pm.expect(json).to.have.property("refresh");
+          pm.expect(json).to.have.property("username");
+      });
+      // Save tokens to environment
+      const json = pm.response.json();
+      if (json.access) {
+          pm.environment.set("access_token", json.access);
+      }
+      if (json.refresh) {
+          pm.environment.set("refresh_token", json.refresh);
+      }
