@@ -1,0 +1,56 @@
+$kind: http-request
+name: Create Room
+method: POST
+url: "{{base_url}}/rooms/api/v1/room-create/"
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test Room",
+      "model": 2,
+      "link": "test-room1",
+      "participants": [5]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 201", function () {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test("Response has required fields", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("id");
+          pm.expect(json).to.have.property("name");
+          pm.expect(json).to.have.property("model");
+          pm.expect(json).to.have.property("link");
+          pm.expect(json).to.have.property("creator");
+      });
+
+      pm.test("Room name matches request", function () {
+          const json = pm.response.json();
+          pm.expect(json.name).to.eql("Test Room");
+      });
+
+      pm.test("Room model matches request", function () {
+          const json = pm.response.json();
+          pm.expect(json.model).to.eql(2);
+      });
+
+      pm.test("Creator is set", function () {
+          const json = pm.response.json();
+          pm.expect(json.creator).to.not.be.null;
+      });
+
+      pm.test("Creator must be in participants", function () {
+          const json = pm.response.json();
+          pm.expect(json.participants).to.include(json.creator);
+      });
+    language: text/javascript
