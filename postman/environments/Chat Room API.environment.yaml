@@ -10,3 +10,5 @@ values:
     value: testuser@example.com
   - key: password
     value: TestPass123!
+  - key: room_id
+    value: ''

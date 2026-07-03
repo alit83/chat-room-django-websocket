@@ -1,0 +1,45 @@
+$kind: http-request
+name: Update Room
+method: PATCH
+url: "{{base_url}}/rooms/api/v1/room-update/{{room_id}}/"
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "NEW Test Roomlol",
+      "link": "new-test-room2",
+      "participants": [5,2,1,2,2,2,2,2]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("Response has required fields", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("name");
+          pm.expect(json).to.have.property("link");
+          pm.expect(json).to.have.property("profile");
+          pm.expect(json).to.have.property("participants");
+      });
+
+      pm.test("Room name matches request", function () {
+          const json = pm.response.json();
+          pm.expect(json.name).to.eql("NEW Test Room");
+      });
+
+
+      pm.test("Creator is set", function () {
+          const json = pm.response.json();
+          pm.expect(json.creator).to.not.be.null;
+      });
+    language: text/javascript
