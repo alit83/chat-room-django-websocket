@@ -2,9 +2,8 @@ from rest_framework.generics import ListAPIView , CreateAPIView , UpdateAPIView 
 from rest_framework.permissions import IsAuthenticated
 from .serializers import RoomListSerializer , RoomCreateSerializer , RoomUpdateSerializer , RoomDetailSerializer
 from room.models import Room
-from accounts.models import Profile
 from .permissions import IsRoomCreator
-from django.db.models import Subquery , OuterRef
+
 
 class RoomListApiView(ListAPIView):
     serializer_class = RoomListSerializer
