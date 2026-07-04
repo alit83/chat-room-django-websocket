@@ -1,4 +1,4 @@
-from rest_framework.generics import ListAPIView , CreateAPIView , UpdateAPIView
+from rest_framework.generics import ListAPIView , CreateAPIView , UpdateAPIView , DestroyAPIView , RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from .serializers import RoomListSerializer , RoomCreateSerializer , RoomUpdateSerializer
 from room.models import Room
@@ -39,3 +39,7 @@ class RoomUpdateApiView(UpdateAPIView):
     )
     .select_related("creator")
 )
+    
+class RoomDeleteApiView(DestroyAPIView):
+    permission_classes = [IsAuthenticated , IsRoomCreator]
+    queryset =  Room.objects.all()
