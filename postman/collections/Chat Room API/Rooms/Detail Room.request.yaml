@@ -1,0 +1,24 @@
+$kind: http-request
+method: GET
+url: '{{base_url}}/rooms/api/v1/room-detail/{{room_id}}/'
+order: 1000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Room name matches request", function () {
+          const json = pm.response.json();
+          pm.expect(json.name).to.eql("NEW Test Room");
+      });
+      pm.test("Each room has required fields", function () {
+          const json = pm.response.json();
+          if (json.length > 0) {
+              const room = json[0];
+              pm.expect(room).to.have.property("id");
+              pm.expect(room).to.have.property("name");
+              pm.expect(room).to.have.property("model");
+          }
+      });

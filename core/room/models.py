@@ -9,7 +9,7 @@ class ModelType(models.IntegerChoices):
 
 
 class Room(models.Model):
-    participants = models.ManyToManyField('accounts.Profile',related_name='participant')
+    participants = models.ManyToManyField('accounts.Profile')
     creator=models.ForeignKey('accounts.Profile',on_delete=models.CASCADE, related_name='creator_profile')
     model = models.IntegerField(choices=ModelType.choices)
     name = models.CharField(max_length=255)

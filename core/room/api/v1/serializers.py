@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from accounts.api.v1.serializers import ProfileSerializer
 from room.models import Room , ModelType
 
 class RoomListSerializer(serializers.ModelSerializer):
@@ -10,7 +11,7 @@ class RoomListSerializer(serializers.ModelSerializer):
 class RoomCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = '__all__'
+        fields = ['name','link','participants','profile','model']
 
     def validate(self, attrs):
         request = self.context['request']
@@ -69,3 +70,9 @@ class RoomUpdateSerializer(serializers.ModelSerializer):
 
         return attrs
         
+class RoomDetailSerializer(serializers.ModelSerializer):
+    participants = ProfileSerializer(many=True)
+    class Meta:
+        model = Room
+        fields = ["id","name","link","model","creator","participants",
+]
