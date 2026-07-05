@@ -3,6 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import MessageListSerializer 
 from message.models import Message
 from .pagination import MessagePagination
+from django.shortcuts import get_object_or_404
+from room.models import Room
 
 class MessageListApiView(ListAPIView):
     serializer_class = MessageListSerializer

@@ -12,3 +12,5 @@ values:
     value: TestPass123!
   - key: room_id
     value: ''
+  - key: room_link
+    value: ''

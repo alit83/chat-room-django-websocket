@@ -13,8 +13,8 @@ body:
   type: json
   content: |-
     {
-      "name": "NEW Test Roomlol",
-      "link": "new-test-room2",
+      "name": "NEW Test Room",
+      "link": "new-test-room",
       "participants": [5,2,1,2,2,2,2,2]
     }
 scripts:
