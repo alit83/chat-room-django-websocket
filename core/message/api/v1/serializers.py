@@ -9,3 +9,9 @@ class MessageListSerializer(serializers.ModelSerializer):
         model = Message
         fields = ['sender','text','room','is_read','created_date','updated_date']
 
+
+class MessageCreateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Message
+        fields = ['text']

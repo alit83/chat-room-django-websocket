@@ -1,0 +1,29 @@
+$kind: http-request
+name: Create Room
+method: POST
+url: '{{base_url}}/messages/api/v1/room/{{room_id}}/message-create/'
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "text": "Test message"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 201", function () {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test("Response has required fields", function () {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("text");
+      });
+    language: text/javascript

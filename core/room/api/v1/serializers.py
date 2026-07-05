@@ -7,28 +7,21 @@ class RoomListSerializer(serializers.ModelSerializer):
         model = Room
         fields = '__all__'
 
+class BaseRoomSerializer(serializers.ModelSerializer):
 
-class RoomCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Room
-        fields = ['name','link','participants','profile','model']
-
-    def validate(self, attrs):
-        request = self.context['request']
-        creator = request.user.user_profile
-        participants = set(attrs.get("participants", []))
-        model = attrs.get('model')
-        link = attrs.get('link')
+    MAX_PARTICIPANTS = 1000
+    def _validate_room(self, *, creator , participants, model, link , name):
+        participants = set(participants)
 
         #in every model the creator must be in participants
         if creator not in participants:
             raise serializers.ValidationError("The creator must be one of the participants")
         
-        MAX_PARTICIPANTS = 1000
-
-        if len(participants) > MAX_PARTICIPANTS:
+        
+        # participants restriction numbers
+        if len(participants) > self.MAX_PARTICIPANTS:
             raise serializers.ValidationError({
-        "participants": f"A room can have at most {MAX_PARTICIPANTS} participants."
+        "participants": f"A room can have at most {self.MAX_PARTICIPANTS} participants."
              })
 
         pv_model = ModelType.pv.value 
@@ -37,13 +30,31 @@ class RoomCreateSerializer(serializers.ModelSerializer):
         if model == pv_model and len(participants) != 2 :
             raise serializers.ValidationError("In Pv room participants must be 2")
         
-        # pv model doesn't have a link
-        if model == pv_model and link != None :
-            raise serializers.ValidationError("In Pv room link must be null")
+        # pv model doesn't have a link and name
+        if model == pv_model:
+            if link is not None or name is not None :
+                raise serializers.ValidationError("In Pv room link and name must be null")
         
-        # In Group model link must be set
-        if model != pv_model and link == None :
-            raise serializers.ValidationError('In Group room link must be set')
+        # In Group model link and name must be set
+        if model != pv_model:
+            if link is None or name is None:
+                raise serializers.ValidationError('In Group room link and name must be set')
+
+class RoomCreateSerializer(BaseRoomSerializer):
+    creator = serializers.PrimaryKeyRelatedField(read_only=True)
+    class Meta:
+        model = Room
+        fields = ['id','name','link','participants','profile','model','creator']
+
+    def validate(self, attrs):
+        self._validate_room(
+        creator = self.context['request'].user.user_profile,
+        participants = attrs.get("participants", []),
+        model = attrs.get('model'),
+        link = attrs.get('link'),
+        name = attrs.get('name'),
+        )
+
         
         
 
@@ -51,42 +62,19 @@ class RoomCreateSerializer(serializers.ModelSerializer):
 
 
 
-class RoomUpdateSerializer(serializers.ModelSerializer):
+class RoomUpdateSerializer(BaseRoomSerializer):
     class Meta:
         model = Room
         fields = ['name','link','participants','profile']
 
     def validate(self, attrs):
-        participants = set(attrs.get("participants", self.instance.participants.all()))
-        model = self.instance.model
-        creator = self.instance.creator
-        link = (attrs.get('link'),self.instance.link)
-              
-        # n every model the creator must be in participants
-        if creator not in participants:
-            raise serializers.ValidationError("The creator must be one of the participants")
-
-        MAX_PARTICIPANTS = 1000
-
-        if len(participants) > MAX_PARTICIPANTS:
-            raise serializers.ValidationError({
-        "participants": f"A room can have at most {MAX_PARTICIPANTS} participants."
-             })
-
-        pv_model = ModelType.pv.value 
-
-        # in pv model participant must be 2
-        if model == pv_model and len(participants) != 2 :
-            raise serializers.ValidationError("In Pv room participants must be 2")
-        
-        # pv model doesn't have a link
-        if model == pv_model and link != None :
-            raise serializers.ValidationError("In Pv room link must be null")
-        
-        # In Group model link must be set
-        if model != pv_model and link == None :
-            raise serializers.ValidationError('In Group room link must be set')
-
+        self._validate_room(
+        creator = self.instance.creator,
+        participants =attrs.get("participants", self.instance.participants.all()),
+        model = self.instance.model,
+        link = attrs.get('link',self.instance.link),
+        name = attrs.get('name',self.instance.name),
+        )
 
 
         return attrs

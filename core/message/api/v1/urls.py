@@ -4,4 +4,5 @@ from . import views
 
 urlpatterns=[
      path('room/<int:pk>/message-list/',views.MessageListApiView.as_view(),name='message_list'),
+     path('room/<int:pk>/message-create/',views.MessageCreateApiView.as_view(),name='message_create'),
 ]
