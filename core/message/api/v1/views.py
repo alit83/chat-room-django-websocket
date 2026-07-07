@@ -1,6 +1,6 @@
 from rest_framework.generics import ListAPIView , CreateAPIView , UpdateAPIView , DestroyAPIView
 from rest_framework.permissions import IsAuthenticated
-from .serializers import MessageListSerializer , MessageCreateSerializer
+from .serializers import MessageListSerializer , MessageCreateSerializer  , MessageUpdateSerializer
 from message.models import Message
 from .pagination import MessagePagination
 from django.shortcuts import get_object_or_404
@@ -29,3 +29,12 @@ class MessageCreateApiView(CreateAPIView):
             sender = self.request.user.user_profile,
             room = room_obj
         )
+
+class MessageUpdateApiView(UpdateAPIView):
+    http_method_names = ['patch']
+    permission_classes = [IsAuthenticated]
+    serializer_class = MessageUpdateSerializer
+
+    def get_queryset(self):
+        return Message.objects.filter(id = self.kwargs['pk'],sender = self.request.user.pk)
+

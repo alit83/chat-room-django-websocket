@@ -14,3 +14,5 @@ values:
     value: ''
   - key: room_link
     value: ''
+  - key: message_id
+    value: ''

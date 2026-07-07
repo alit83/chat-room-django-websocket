@@ -15,3 +15,9 @@ class MessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['text']
+
+class MessageUpdateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Message
+        fields = ['text']

@@ -1,8 +1,8 @@
 $kind: http-request
-name: Create Message
-method: POST
-url: '{{base_url}}/messages/api/v1/room/{{room_id}}/message-create/'
-order: 2000
+name: Update Message
+method: PATCH
+url: '{{base_url}}/messages/api/v1/{{message_id}}/message-update/'
+order: 4000
 auth:
   type: bearer
   credentials:
@@ -13,13 +13,13 @@ body:
   type: json
   content: |-
     {
-      "text": "Test message"
+      "text": "Edit Test message"
     }
 scripts:
   - type: afterResponse
     code: |-
-      pm.test("Status code is 201", function () {
-          pm.response.to.have.status(201);
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
       });
 
       pm.test("Response has required fields", function () {
