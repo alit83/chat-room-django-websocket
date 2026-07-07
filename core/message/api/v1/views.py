@@ -1,10 +1,13 @@
-from rest_framework.generics import ListAPIView , CreateAPIView , UpdateAPIView , DestroyAPIView
+from rest_framework.generics import ListAPIView , CreateAPIView , UpdateAPIView , DestroyAPIView , GenericAPIView
 from rest_framework.permissions import IsAuthenticated
-from .serializers import MessageListSerializer , MessageCreateSerializer  , MessageUpdateSerializer
-from message.models import Message
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import MessageListSerializer , MessageCreateSerializer  , MessageUpdateSerializer , MessageReadSerializer
+from message.models import Message , MessageRead
 from .pagination import MessagePagination
 from django.shortcuts import get_object_or_404
 from room.models import Room
+from django.core.exceptions import ObjectDoesNotExist
 
 class MessageListApiView(ListAPIView):
     serializer_class = MessageListSerializer
@@ -38,3 +41,35 @@ class MessageUpdateApiView(UpdateAPIView):
     def get_queryset(self):
         return Message.objects.filter(id = self.kwargs['pk'],sender = self.request.user.pk)
 
+
+class MessageReadApiView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MessageReadSerializer
+    
+    def post(self,request,room_id,*args,**kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message_ids = serializer.validated_data['message_ids']
+        user_pk = request.user.pk
+        room = get_object_or_404(Room,pk=room_id,participants=user_pk,
+)
+        messages = Message.objects.filter(room = room , id__in = message_ids)
+        if messages.count() != len(set(message_ids)):
+            return Response(
+        {"detail": "Some messages are invalid."},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+
+        reads = [
+        MessageRead(
+        user_id=user_pk,
+        message_id=message.id,
+    )
+    for message in messages
+]
+        MessageRead.objects.bulk_create(
+        reads,
+        ignore_conflicts=True,
+)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

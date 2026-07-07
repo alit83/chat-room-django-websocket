@@ -1,0 +1,24 @@
+$kind: http-request
+name: Create MessageRead
+method: POST
+url: "{{base_url}}/messages/api/v1/room/{{room_id}}/read-message/"
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "message_ids": [1,2,3]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 201", function () {
+          pm.response.to.have.status(201);
+      });
+    language: text/javascript
