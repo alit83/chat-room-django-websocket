@@ -12,7 +12,7 @@ class Room(models.Model):
     participants = models.ManyToManyField('accounts.Profile')
     creator=models.ForeignKey('accounts.Profile',on_delete=models.CASCADE, related_name='creator_profile')
     model = models.IntegerField(choices=ModelType.choices)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255,null=True,blank=True)
     link = models.SlugField(unique=True,null=True)
     profile=models.ImageField(upload_to='room_profile/',null=True,blank=True)
     created_date = models.DateTimeField(auto_now_add=True)

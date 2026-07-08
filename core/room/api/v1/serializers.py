@@ -8,6 +8,8 @@ class RoomListSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class BaseRoomSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(allow_null=True)
+    link = serializers.SlugField(allow_null=True)
 
     MAX_PARTICIPANTS = 1000
     def _validate_room(self, *, creator , participants, model, link , name):
