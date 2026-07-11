@@ -42,37 +42,6 @@ class MessageUpdateApiView(UpdateAPIView):
         return Message.objects.filter(id = self.kwargs['pk'],sender = self.request.user.pk)
 
 
-class MessageReadApiView(GenericAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = MessageReadSerializer
-    
-    def post(self,request,room_id,*args,**kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        message_ids = serializer.validated_data['message_ids']
-        user_pk = request.user.pk
-        room = get_object_or_404(Room,pk=room_id,participants=user_pk,
-)
-        messages = Message.objects.filter(room = room , id__in = message_ids)
-        if messages.count() != len(set(message_ids)):
-            return Response(
-        {"detail": "Some messages are invalid."},
-        status=status.HTTP_400_BAD_REQUEST,
-    )
-
-        reads = [
-        MessageRead(
-        user_id=user_pk,
-        message_id=message.id,
-    )
-    for message in messages
-]
-        MessageRead.objects.bulk_create(
-        reads,
-        ignore_conflicts=True,
-)
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
     
 
 class MessageDeleteApiView(DestroyAPIView):
