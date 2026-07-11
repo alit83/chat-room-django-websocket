@@ -1,0 +1,8 @@
+$schema: https://schema.postman.com/json/collection/v2.1.0/collection.json
+$kind: websocket-request
+name: WebSocket Send Message
+description: ""
+settings: {}
+messages: .resources/Chat Room Connect.resources/messages
+order: 13262
+url: ws://localhost:8000/ws/room/{{room_id}}/?token={{access_token}}

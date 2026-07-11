@@ -1,0 +1,8 @@
+$kind: websocket-message
+content: |-
+  {
+      "type":"typing",
+      "is_typing": true
+  }
+contentType: text
+order: 1783728904850
