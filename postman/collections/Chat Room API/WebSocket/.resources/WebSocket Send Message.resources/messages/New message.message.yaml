@@ -1,0 +1,8 @@
+$kind: websocket-message
+content: |-
+  {
+      "type":"message",
+      "message":"ss"
+  }
+contentType: text
+order: 1783851851354

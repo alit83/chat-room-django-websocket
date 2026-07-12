@@ -1,8 +1,8 @@
 $schema: https://schema.postman.com/json/collection/v2.1.0/collection.json
 $kind: websocket-request
-name: WebSocket Send Message
+name: WebSocket Send Edit Message
 description: ""
 settings: {}
-messages: .resources/WebSocket Send Message.resources/messages
+messages: .resources/WebSocket Send Message_Edit.resources/messages
 order: 13262
 url: ws://localhost:8000/ws/room/{{room_id}}/?token={{access_token}}

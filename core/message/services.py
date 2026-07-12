@@ -11,9 +11,18 @@ class MessageService:
         return await Message.objects.acreate(
             sender_id=user.pk,
             room=room,
-            text=text,
+            text=text.strip(),
         )
     
+    @staticmethod
+    async def edit_message(*,user_id,message_id,new_message):
+        try:
+            message_obj = await Message.objects.aget(id=message_id,sender_id=user_id)
+        except Message.DoesNotExist:
+            return None
+        message_obj.text = new_message.strip()
+        await message_obj.asave(update_fields=['text'])
+        return message_obj
 
     @staticmethod
     @database_sync_to_async   
@@ -48,7 +57,14 @@ class MessageService:
 class PresenceService():
     @staticmethod
     async def connect(*,user_id):
-        return await redis.incr(f"user:{user_id}:connections")
+        PRESENCE_TTL=60
+        key = f"user:{user_id}:connections"
+        connetions = await redis.incr(key)
+        await redis.expire(
+    key,
+    PRESENCE_TTL,
+)   
+        return connetions
 
     @staticmethod
     async def disconnect(*,user_id):
@@ -65,3 +81,10 @@ class PresenceService():
         return  Room.objects.filter(
             participants=user_id
             ).values_list("id", flat=True)
+    @staticmethod
+    async def heartbeat(*,user_id):
+        PRESENCE_TTL=60
+        await redis.expire(
+        f"user:{user_id}:connections",
+        PRESENCE_TTL,
+    )

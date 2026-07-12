@@ -44,6 +44,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message_id":event["message_id"]
         }))
 
+    async def chat_message_edit(self, event):
+        await self.send(text_data=json.dumps({
+            "type":"message_edit",
+            "message":  event["message"],
+            "room_id":event["room_id"],
+            "sender_id": event["sender_id"],
+            "message_id":event["message_id"],
+            "edited_at":event["edited_at"]
+        }))
+
+
     async def chat_typing(self,event):
         await self.send(
         text_data=json.dumps({
@@ -78,8 +89,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         handlers = {
             "message":self.handle_message,
+            "message_edit":self.handle_message_edit,
             "typing":self.handle_typing,
-            "read":self.handle_read
+            "read":self.handle_read,
+            "heartbeat":self.handle_heartbeat
         }
         handler = handlers.get(data.get("type"))
         if handler is None:
@@ -92,7 +105,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def handle_message(self,data):
         text=data.get("message")
-        if not text:
+        if not text or not text.strip():
             await self.send(text_data=json.dumps({
                     'error':'Message is required'
                 }))
@@ -174,3 +187,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
             },)
         else:
             return
+    async def handle_heartbeat(self,data):
+        await PresenceService.heartbeat(user_id=self.user.pk)
+    async def handle_message_edit(self,data):
+        new_message=data.get("message")
+        message_id = data.get("message_id")
+        if not new_message or not new_message.strip() or not message_id:
+            await self.send(text_data=json.dumps({
+                    'error':"message and message_id are required"
+                }))
+            return
+        message = await MessageService.edit_message(user_id=self.user.pk,message_id=message_id,new_message=new_message)
+        if not message:
+            await self.send(text_data=json.dumps({
+            "error": "message not found"
+        }))
+            return
+        await self.channel_layer.group_send(self.room_group_name,{
+            "type":"chat.message_edit",
+            "message":message.text,
+            "sender_id":self.user.pk,
+            "message_id":message.id,
+            "room_id":self.room_id,
+            "edited_at": message.updated_date.isoformat()
+            },)
+        
