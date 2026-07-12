@@ -1,10 +1,10 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from .services import MessageService
+from .services import MessageService , PresenceService
 from room.models import Room
 from message.api.v1.serializers import MessageReadSerializer
 from rest_framework.exceptions import ValidationError
-
+from django.utils import timezone
 
 
 
@@ -22,11 +22,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name)
             await self.accept()
+            connections = await PresenceService.connect(user_id=self.user.pk)
+            await self.broadcast_presence(connections)
         except Room.DoesNotExist:
             await self.close(code=4004)
             return
     async def disconnect(self, close_code):
-
+        connections = await PresenceService.disconnect(user_id=self.user.pk)
+        await self.broadcast_presence(connections)
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name)
@@ -50,6 +53,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "is_typing": event["is_typing"],
         })
     )
+        
     async def chat_read(self,event):
         await self.send(
         text_data=json.dumps({
@@ -57,6 +61,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "room_id":event['room_id'],
             "user_id": event["user_id"],
             "message_ids": event["message_ids"],
+        })
+    )
+    
+    async def chat_presence(self,event):
+        await self.send(
+        text_data=json.dumps({
+            "type": "presence",
+            "is_online":event["is_online"],
+            "last_seen":event.get("last_seen"),
+            "user_id": event["user_id"],
         })
     )
 
@@ -137,3 +151,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "room_id":self.room_id,
             "message_ids":read_messages
             },)
+
+    async def broadcast_presence(self,connections):
+        user_pk = self.user.pk
+        if connections == 1:
+
+            await self.channel_layer.group_send(self.room_group_name,{
+            "type":"chat.presence",
+            "is_online":True,
+            "user_id":user_pk,
+            },)
+        elif connections == 0:
+            self.user.last_seen = timezone.now()
+            await self.user.asave(update_fields=['last_seen'])
+            rooms= await PresenceService.rooms_id(user_pk)
+            for room_id in rooms:
+                await self.channel_layer.group_send(f"room_{room_id}",{
+            "type":"chat.presence",
+            "is_online":False,
+            "user_id":user_pk,
+            "last_seen":self.user.last_seen
+            },)
+        else:
+            return

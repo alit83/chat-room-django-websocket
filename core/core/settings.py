@@ -172,3 +172,19 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+#redis base url
+REDIS_URL = "redis://redis:6379/0"
+
+
+# caching configs
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+
+}

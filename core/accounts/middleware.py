@@ -11,12 +11,12 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-def get_user(user_id):
+async def get_user(user_id):
     """
     this function do query to get user if exist with async orm 
     """
     try:
-        return User.objects.aget(pk=user_id)
+        return await User.objects.aget(pk=user_id)
     except User.DoesNotExist:
         return AnonymousUser()
 

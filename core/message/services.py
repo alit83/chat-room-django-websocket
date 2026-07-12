@@ -1,6 +1,9 @@
 from message.models import Message , MessageRead
 from channels.db import database_sync_to_async
 from rest_framework.exceptions import ValidationError
+from core.redis import redis
+from room.models import Room
+
 class MessageService:
 
     @staticmethod
@@ -11,6 +14,7 @@ class MessageService:
             text=text,
         )
     
+
     @staticmethod
     @database_sync_to_async   
     def read_messages(*,message_ids,room,user_pk):
@@ -40,3 +44,24 @@ class MessageService:
         reads
 )
         return new_ids
+    
+class PresenceService():
+    @staticmethod
+    async def connect(*,user_id):
+        return await redis.incr(f"user:{user_id}:connections")
+
+    @staticmethod
+    async def disconnect(*,user_id):
+        connections = await redis.decr(f"user:{user_id}:connections")
+
+        if connections <= 0:
+            await redis.delete(f"user:{user_id}:connections")
+
+        return max(connections, 0)
+
+    @staticmethod
+    @database_sync_to_async 
+    def rooms_id(*,user_id):
+        return  Room.objects.filter(
+            participants=user_id
+            ).values_list("id", flat=True)

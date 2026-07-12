@@ -31,17 +31,16 @@ services:
      restart: always
      depends_on:
          - db
+         - redis
   redis:
     container_name: redis
-    image: redis:7-alpine
+    image: redis
     restart: always
     ports:
       - "6379:6379"  
-    command: redis-server --save 60 1 --loglevel warning 
+    command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
-    depends_on:
-      - backend
-      - db
+
 volumes:
   redis_data:
