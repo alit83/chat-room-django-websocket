@@ -2,7 +2,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import json
 from .services import MessageService , PresenceService
 from room.models import Room
-from message.api.v1.serializers import MessageReadSerializer
+from message.api.v1.serializers import MessageIdsSerializer
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 
@@ -74,6 +74,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message_ids": event["message_ids"],
         })
     )
+        
+    async def chat_message_delete(self,event):
+        await self.send(
+        text_data=json.dumps({
+            "type": "read",
+            "room_id":event['room_id'],
+            "user_id": event["user_id"],
+            "message_ids": event["message_ids"],
+        })
+    )
     
     async def chat_presence(self,event):
         await self.send(
@@ -90,6 +100,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         handlers = {
             "message":self.handle_message,
             "message_edit":self.handle_message_edit,
+            "message_delete":self.handle_message_delete,
             "typing":self.handle_typing,
             "read":self.handle_read,
             "heartbeat":self.handle_heartbeat
@@ -137,7 +148,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "is_typing":is_typing
             },)
     async def handle_read(self,data):
-        serializer = MessageReadSerializer(data=data)
+        serializer = MessageIdsSerializer(data=data)
         if not serializer.is_valid():
             await self.send(
         text_data=json.dumps({
@@ -211,4 +222,30 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "room_id":self.room_id,
             "edited_at": message.updated_date.isoformat()
             },)
+    async def handle_message_delete(self,data):
+        serializer = MessageIdsSerializer(data=data)
+        if not serializer.is_valid():
+            await self.send(
+        text_data=json.dumps({
+                "errors": serializer.errors
+            }))
+            return
+        message_ids = serializer.validated_data['message_ids']
+        try:
+            await MessageService.delete_messages(message_ids=message_ids,room=self.room,
+                                                user_pk=self.user.pk)
+        except ValidationError as exc:
+            await self.send(
+        text_data=json.dumps({
+            "errors": exc.detail,
+        })
+    )
+            return
+        await self.channel_layer.group_send(self.room_group_name,{
+            "type":"chat.message_delete",
+            "user_id":self.user.pk,
+            "room_id":self.room_id,
+            "message_ids":message_ids
+            },)
+        
         

@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import MessageListSerializer , MessageCreateSerializer  , MessageUpdateSerializer , MessageReadSerializer
+from .serializers import MessageListSerializer , MessageCreateSerializer  , MessageUpdateSerializer 
 from message.models import Message , MessageRead
 from .pagination import MessagePagination
 from django.shortcuts import get_object_or_404

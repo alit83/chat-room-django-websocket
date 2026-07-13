@@ -23,7 +23,7 @@ class MessageUpdateSerializer(serializers.ModelSerializer):
         fields = ['text']
 
 
-class MessageReadSerializer(serializers.Serializer):
+class MessageIdsSerializer(serializers.Serializer):
     message_ids = serializers.ListField(
         child=serializers.IntegerField(),
         allow_empty=False,

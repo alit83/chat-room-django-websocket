@@ -3,6 +3,7 @@ from channels.db import database_sync_to_async
 from rest_framework.exceptions import ValidationError
 from core.redis import redis
 from room.models import Room
+from django.db.models import Q
 
 class MessageService:
 
@@ -23,6 +24,20 @@ class MessageService:
         message_obj.text = new_message.strip()
         await message_obj.asave(update_fields=['text'])
         return message_obj
+    
+
+    @staticmethod
+    @database_sync_to_async   
+    def delete_messages(*,message_ids,room,user_pk):
+        messages = Message.objects.filter(Q(room=room) & Q(id__in=message_ids) & (Q(sender_id=user_pk) | Q(room__creator_id=user_pk))).only("id")
+        if messages.count() != len(message_ids):
+            raise ValidationError(
+            {"message_ids": ["Some messages are invalid for deletion."]}
+            )
+        messages.delete()
+
+            
+
 
     @staticmethod
     @database_sync_to_async   
