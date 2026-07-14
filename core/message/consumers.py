@@ -17,17 +17,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)
             return
         try:
+           # Verify the user belongs to the requested room while fetching it.
             self.room = await Room.objects.aget(pk=self.room_id,participants = self.user.pk)
             await self.channel_layer.group_add(
                 self.room_group_name,
                 self.channel_name)
             await self.accept()
+           # A user may have multiple browser tabs open. We track the number of
+           # active connections so the user is considered offline only after the
+           # last WebSocket disconnects.
             connections = await PresenceService.connect(user_id=self.user.pk)
             await self.broadcast_presence(connections)
         except Room.DoesNotExist:
             await self.close(code=4004)
             return
     async def disconnect(self, close_code):
+        # Decrement the user's active connection count in Redis
         connections = await PresenceService.disconnect(user_id=self.user.pk)
         await self.broadcast_presence(connections)
         await self.channel_layer.group_discard(
@@ -96,6 +101,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     )
 
     async def receive(self, text_data):
+        """
+        Redirect incoming events to their corresponding handler
+        """
         data = json.loads(text_data)
         handlers = {
             "message":self.handle_message,
@@ -177,6 +185,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             },)
 
     async def broadcast_presence(self,connections):
+        """
+        Avoid duplicate presence broadcasts when the user opens multiple tabs.
+        """
         user_pk = self.user.pk
         if connections == 1:
 
@@ -189,6 +200,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.user.last_seen = timezone.now()
             await self.user.asave(update_fields=['last_seen'])
             rooms= await PresenceService.rooms_id(user_pk)
+            # broadcasts the presence for every room that user is a participants in
             for room_id in rooms:
                 await self.channel_layer.group_send(f"room_{room_id}",{
             "type":"chat.presence",
@@ -199,10 +211,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         else:
             return
     async def handle_heartbeat(self,data):
+        "refresh the expiration of the connection count"
         await PresenceService.heartbeat(user_id=self.user.pk)
     async def handle_message_edit(self,data):
         new_message=data.get("message")
         message_id = data.get("message_id")
+        # if user sending space instead of message got an error
         if not new_message or not new_message.strip() or not message_id:
             await self.send(text_data=json.dumps({
                     'error':"message and message_id are required"

@@ -29,6 +29,9 @@ class MessageService:
     @staticmethod
     @database_sync_to_async   
     def delete_messages(*,message_ids,room,user_pk):
+        """
+        Fetch and delete all messages where: the user is the sender OR the user is the creator of the room.
+        """
         messages = Message.objects.filter(Q(room=room) & Q(id__in=message_ids) & (Q(sender_id=user_pk) | Q(room__creator_id=user_pk))).only("id")
         if messages.count() != len(message_ids):
             raise ValidationError(
@@ -48,7 +51,9 @@ class MessageService:
             {"message_ids": ["Some messages are invalid."]}
             )
             
-
+        """
+        find read messages and exclude their message IDs from setting them as read
+        """
         existing = set(
     MessageRead.objects.filter(
         user_id=user_pk,
@@ -72,6 +77,7 @@ class MessageService:
 class PresenceService():
     @staticmethod
     async def connect(*,user_id):
+        # Create or increment the user's active connection count in Redis.
         PRESENCE_TTL=60
         key = f"user:{user_id}:connections"
         connetions = await redis.incr(key)
@@ -83,6 +89,7 @@ class PresenceService():
 
     @staticmethod
     async def disconnect(*,user_id):
+        # Deincrement the user's active connection count in Redis and if goes to zero delete it.
         connections = await redis.decr(f"user:{user_id}:connections")
 
         if connections <= 0:
@@ -98,6 +105,9 @@ class PresenceService():
             ).values_list("id", flat=True)
     @staticmethod
     async def heartbeat(*,user_id):
+        """
+        refresh the user's connection count
+        """
         PRESENCE_TTL=60
         await redis.expire(
         f"user:{user_id}:connections",
