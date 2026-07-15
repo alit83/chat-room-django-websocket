@@ -10,17 +10,6 @@ class MessageListSerializer(serializers.ModelSerializer):
         fields = ['sender','text','room','created_date','updated_date']
 
 
-class MessageCreateSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Message
-        fields = ['text']
-
-class MessageUpdateSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Message
-        fields = ['text']
 
 
 class MessageIdsSerializer(serializers.Serializer):

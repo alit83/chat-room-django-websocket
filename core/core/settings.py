@@ -39,15 +39,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'channels',
     'accounts',
     'room',
     'message',
     'rest_framework',
-    'rest_framework_simplejwt'
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -160,7 +162,8 @@ REST_FRAMEWORK = {
 
     "DEFAULT_THROTTLE_RATES": {
         'user': '5/min'
-    }
+    },
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # channel layer websocket configuration
@@ -191,3 +194,8 @@ CACHES = {
 
 # # celery configs
 # CELERY_BROKER_URL = "redis://redis:6379/1"
+
+
+# just on development
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True

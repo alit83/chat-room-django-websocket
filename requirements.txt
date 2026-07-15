@@ -15,3 +15,9 @@ psycopg[binary]==3.3.4
 redis==5.2.1
 django-redis==5.4.0
 hiredis==3.1.0
+
+#document module
+drf-spectacular
+
+
+django-cors-headers==4.9.0
