@@ -31,10 +31,11 @@ class CustomeTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         validated_data = super().validate(attrs)
         validated_data['username'] = self.user.username
+        validated_data['user_id'] = self.user.pk    
         return validated_data
     
 class ProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profile
-        fields = ['first_name','last_name','gender','avatar']
+        fields = ['pk','first_name','last_name','gender','avatar']
