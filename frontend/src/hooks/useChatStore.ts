@@ -2,12 +2,18 @@ import { create } from 'zustand'
 import { initialChats, type Chat, type Message } from '../data/mockChats'
 import { roomsApi, messagesApi } from '../lib/api'
 
+type ChatWithPagination = Chat & {
+  currentPage: number
+  hasMoreMessages: boolean
+  loadingMessages: boolean
+}
+
 type ChatStore = {
-  chats: Chat[]
+  chats: ChatWithPagination[]
   activeChatId: string | null
   searchQuery: string
   loading: boolean
-  setChats: (chats: Chat[]) => void
+  setChats: (chats: ChatWithPagination[]) => void
   setActiveChatId: (id: string | null) => void
   setSearchQuery: (q: string) => void
   setLoading: (loading: boolean) => void
@@ -23,10 +29,10 @@ type ChatStore = {
   selectChat: (id: string) => void
   clearActiveChat: () => void
   loadRooms: () => Promise<void>
-  loadMessages: (roomId: number) => Promise<void>
+  loadMessages: (roomId: number, page?: number, pageSize?: number) => Promise<void>
 }
 
-function mapRoomToChat(room: Record<string, unknown>): Chat {
+function mapRoomToChat(room: Record<string, unknown>): ChatWithPagination {
   const profile = room.profile || null
   const name = (room.name as string) || (profile ? `${(profile as Record<string, string>).first_name} ${(profile as Record<string, string>).last_name}`.trim() : 'Unknown')
   const avatar = (profile as Record<string, string>)?.avatar ? '👤' : name.slice(0, 2).toUpperCase()
@@ -45,6 +51,9 @@ function mapRoomToChat(room: Record<string, unknown>): Chat {
     lastMessageAt: 0,
     unread: 0,
     typingUsers: [],
+    currentPage: 0,
+    hasMoreMessages: true,
+    loadingMessages: false,
   }
 }
 
@@ -52,7 +61,7 @@ function mapMessageToMessage(msg: Record<string, unknown>): Message {
   return {
     id: (msg.id as string | number) || (msg.message_id as string | number),
     text: (msg.text as string) || (msg.message as string),
-    senderId: String((msg.sender.pk as number | string) || (msg.sender as Record<string, string | number>)?.id),
+    senderId: String((msg.sender as Record<string, string | number>)?.pk || (msg.sender as Record<string, string | number>)?.id),
     senderName: (msg.sender as Record<string, string>)?.first_name
       ? `${(msg.sender as Record<string, string>).first_name} ${(msg.sender as Record<string, string>).last_name}`.trim()
       : undefined,
@@ -65,7 +74,12 @@ function mapMessageToMessage(msg: Record<string, unknown>): Message {
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
-  chats: initialChats,
+  chats: initialChats.map(chat => ({
+    ...chat,
+    currentPage: 0,
+    hasMoreMessages: true,
+    loadingMessages: false,
+  })),
   activeChatId: null,
   searchQuery: '',
   loading: false,
@@ -168,42 +182,60 @@ export const useChatStore = create<ChatStore>((set) => ({
     })),
   clearActiveChat: () => set({ activeChatId: null }),
 
-  // Load rooms from API
   loadRooms: async () => {
     set({ loading: true })
     try {
       const rooms = await roomsApi.list()
-      const chats = rooms.map(mapRoomToChat)
+      const chats: ChatWithPagination[] = rooms.map(room => ({
+        ...mapRoomToChat(room),
+        currentPage: 0,
+        hasMoreMessages: true,
+        loadingMessages: false,
+      }))
       set({ chats, loading: false })
-    } catch {
-      set({ chats: initialChats, loading: false })
+    } catch (error) {
+      console.error('Failed to load rooms:', error)
+      set({ loading: false })
     }
   },
-  loadMessages: async (roomId: number) => {
+  loadMessages: async (roomId: number, page = 1, pageSize = 20) => {
+    set((state) => ({
+      chats: state.chats.map((c) =>
+        c.id === String(roomId) ? { ...c, loadingMessages: true } : c
+      ),
+    }))
+
     try {
-      const data = await messagesApi.list(roomId)
+      const data = await messagesApi.list(roomId, page, pageSize)
       const messages = (data.results || []).map(mapMessageToMessage)
       set((state) => ({
         chats: state.chats.map((c) =>
           c.id === String(roomId)
             ? {
                 ...c,
-                messages,
-                lastMessage: messages[messages.length - 1]?.text || '',
+                messages: page === 1 ? messages : [...messages, ...c.messages],
+                currentPage: page,
+                hasMoreMessages: messages.length === pageSize,
+                loadingMessages: false,
+                lastMessage: messages[messages.length - 1]?.text || c.lastMessage,
                 lastMessageAt: messages[messages.length - 1]
                   ? new Date(messages[messages.length - 1].created_date).getTime()
-                  : 0,
+                  : c.lastMessageAt,
               }
             : c,
         ),
       }))
-    } catch {
-      // Keep mock messages on error
+    } catch (error) {
+      console.error(`Failed to load messages for room ${roomId}:`, error)
+      set((state) => ({
+        chats: state.chats.map((c) =>
+          c.id === String(roomId) ? { ...c, loadingMessages: false } : c
+        ),
+      }))
     }
   },
 }))
 
-// Derived selectors
 export const useFilteredChats = () => {
   const { chats, searchQuery } = useChatStore()
   const q = searchQuery.trim().toLowerCase()

@@ -22,6 +22,7 @@ type ClientMessage =
   | { type: 'read'; message_ids: number[] }
   | { type: 'typing'; is_typing: boolean }
   | { type: 'heartbeat' }
+  | { type: 'disconnect'; token: string }
 
 const RECONNECT_BASE_DELAY = 1000 // 1 second
 const MAX_RECONNECT_DELAY = 30 * 1000 // 30 seconds
@@ -164,14 +165,17 @@ export function useWebSocket(roomId: number | null) {
       clearInterval(heartbeatIntervalRef.current)
       heartbeatIntervalRef.current = null
     }
-    if (wsRef.current) {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      if (accessToken) {
+        wsRef.current.send(JSON.stringify({ type: 'disconnect', token: accessToken }))
+      }
       wsRef.current.close(1000, 'Client disconnect') // 1000 is Normal Closure
       wsRef.current = null
     }
     setConnected(false)
     setError(null)
     reconnectAttempts.current = 0
-  }, [])
+  }, [accessToken])
 
   const connect = useCallback(() => {
     if (!roomId || !accessToken) {

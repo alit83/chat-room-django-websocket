@@ -98,11 +98,11 @@ class PresenceService():
         return max(connections, 0)
 
     @staticmethod
-    @database_sync_to_async 
-    def rooms_id(*,user_id):
-        return  Room.objects.filter(
+    async def rooms_id(*,user_id):
+        room_qs = Room.objects.filter(
             participants=user_id
             ).values_list("id", flat=True)
+        return [room_id async for room_id in room_qs]
     @staticmethod
     async def heartbeat(*,user_id):
         """
@@ -112,4 +112,4 @@ class PresenceService():
         await redis.expire(
         f"user:{user_id}:connections",
         PRESENCE_TTL,
-    )
+    )   

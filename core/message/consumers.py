@@ -197,19 +197,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "user_id":user_pk,
             },)
         elif connections == 0:
-            try:
-                self.user.last_seen = timezone.now()
-                await self.user.asave(update_fields=['last_seen'])
-                rooms = await PresenceService.rooms_id(user_id=user_pk)
+            last_seen = timezone.now()
+            self.user.last_seen = last_seen
+            await self.user.asave(update_fields=['last_seen'])
+            rooms = await PresenceService.rooms_id(user_id=user_pk)
             # broadcasts the presence for every room that user is a participants in
-            except ValidationError:
-                return
             for room_id in rooms:
                 await self.channel_layer.group_send(f"room_{room_id}",{
             "type":"chat.presence",
             "is_online":False,
             "user_id":user_pk,
-            "last_seen":self.user.last_seen
+            "last_seen":last_seen.isoformat()
             },)
         else:
             return

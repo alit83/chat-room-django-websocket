@@ -107,7 +107,7 @@ export function ChatLayout() {
               onBack={clearActiveChat}
               isTyping={isTyping}
             />
-            <MessageList messages={activeChat.messages} />
+            <MessageList />
             <MessageInput
               onSend={handleSend}
               onFocusChange={handleTyping}
