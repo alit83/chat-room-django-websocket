@@ -57,18 +57,30 @@ function mapRoomToChat(room: Record<string, unknown>): ChatWithPagination {
   }
 }
 
+// useChatStore.ts
 function mapMessageToMessage(msg: Record<string, unknown>): Message {
+  const sender = msg.sender as Record<string, string | number> | undefined
+  const createdDate = msg.created_date as string
+  const room = (msg.room as number) || (msg.room_id as number)
+  const senderPk = sender?.pk ?? sender?.id
+
   return {
-    id: (msg.id as string | number) || (msg.message_id as string | number),
+    // No stable id from the API — derive a unique key from room + sender + timestamp.
+    id: (msg.id as string | number)
+      ?? (msg.message_id as string | number)
+      ?? `${room}-${senderPk}-${createdDate}`,
     text: (msg.text as string) || (msg.message as string),
-    senderId: String((msg.sender as Record<string, string | number>)?.pk || (msg.sender as Record<string, string | number>)?.id),
-    senderName: (msg.sender as Record<string, string>)?.first_name
-      ? `${(msg.sender as Record<string, string>).first_name} ${(msg.sender as Record<string, string>).last_name}`.trim()
-      : undefined,
-    timestamp: new Date(msg.created_date as string).getTime(),
-    room: (msg.room as number) || (msg.room_id as number),
-    created_date: msg.created_date as string,
-    updated_date: (msg.updated_date as string) || (msg.created_date as string),
+    senderId: String(senderPk),
+    senderUsername: sender?.username as string | undefined,
+    senderFirstName: sender?.first_name as string | undefined,
+    senderLastName: sender?.last_name as string | undefined,
+    senderName: sender?.first_name
+      ? `${sender.first_name} ${sender.last_name}`.toString().trim()
+      : (sender?.username as string | undefined),
+    timestamp: new Date(createdDate).getTime(),
+    room,
+    created_date: createdDate,
+    updated_date: (msg.updated_date as string) || createdDate,
     read: msg.read as boolean | undefined,
   }
 }
@@ -199,41 +211,51 @@ export const useChatStore = create<ChatStore>((set) => ({
     }
   },
   loadMessages: async (roomId: number, page = 1, pageSize = 20) => {
+  set((state) => ({
+    chats: state.chats.map((c) =>
+      c.id === String(roomId) ? { ...c, loadingMessages: true } : c
+    ),
+  }))
+
+  try {
+    const data = await messagesApi.list(roomId, page, pageSize)
+    console.log('RAW MESSAGE RESULT:', data.results?.[0])
+
+    const messages = (data.results || []).map(mapMessageToMessage)
+
+    set((state) => ({
+      chats: state.chats.map((c) => {
+        if (c.id !== String(roomId)) return c
+
+        // Safe merge: union by id (never drops anything), then always
+        // sort by timestamp so display order doesn't depend on how
+        // the backend orders any given page.
+        const combined = page === 1 ? messages : [...messages, ...c.messages]
+        const byId = new Map(combined.map((m) => [m.id, m]))
+        const sortedMessages = [...byId.values()].sort((a, b) => a.timestamp - b.timestamp)
+
+        return {
+          ...c,
+          messages: sortedMessages,
+          currentPage: page,
+          hasMoreMessages: messages.length === pageSize,
+          loadingMessages: false,
+          lastMessage: sortedMessages[sortedMessages.length - 1]?.text || c.lastMessage,
+          lastMessageAt: sortedMessages[sortedMessages.length - 1]
+            ? sortedMessages[sortedMessages.length - 1].timestamp
+            : c.lastMessageAt,
+        }
+      }),
+    }))
+  } catch (error) {
+    console.error(`Failed to load messages for room ${roomId}:`, error)
     set((state) => ({
       chats: state.chats.map((c) =>
-        c.id === String(roomId) ? { ...c, loadingMessages: true } : c
+        c.id === String(roomId) ? { ...c, loadingMessages: false } : c
       ),
     }))
-
-    try {
-      const data = await messagesApi.list(roomId, page, pageSize)
-      const messages = (data.results || []).map(mapMessageToMessage)
-      set((state) => ({
-        chats: state.chats.map((c) =>
-          c.id === String(roomId)
-            ? {
-                ...c,
-                messages: page === 1 ? messages : [...messages, ...c.messages],
-                currentPage: page,
-                hasMoreMessages: messages.length === pageSize,
-                loadingMessages: false,
-                lastMessage: messages[messages.length - 1]?.text || c.lastMessage,
-                lastMessageAt: messages[messages.length - 1]
-                  ? new Date(messages[messages.length - 1].created_date).getTime()
-                  : c.lastMessageAt,
-              }
-            : c,
-        ),
-      }))
-    } catch (error) {
-      console.error(`Failed to load messages for room ${roomId}:`, error)
-      set((state) => ({
-        chats: state.chats.map((c) =>
-          c.id === String(roomId) ? { ...c, loadingMessages: false } : c
-        ),
-      }))
-    }
-  },
+  }
+},
 }))
 
 export const useFilteredChats = () => {

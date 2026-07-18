@@ -5,7 +5,7 @@ import type { Message } from '../data/mockChats'
 
 // Server to Client Messages
 type WSMessage =
-  | { type: 'message'; room_id: number; message_id: number; sender_id: number; message: string }
+  | { type: 'message'; room_id: number; message_id: number; sender_id: number; message: string; sender_username: string; sender_firstname: string; sender_lastname: string }
   | { type: 'message_edit'; room_id: number; message_id: number; sender_id: number; message: string; edited_at: string }
   | { type: 'message_delete'; room_id: number; user_id: number; message_ids: number[] }
   | { type: 'read'; room_id: number; user_id: number; message_ids: number[] }
@@ -60,6 +60,12 @@ export function useWebSocket(roomId: number | null) {
           id: String(data.message_id),
           text: data.message,
           senderId: String(data.sender_id),
+          senderUsername: data.sender_username,
+          senderFirstName: data.sender_firstname,
+          senderLastName: data.sender_lastname,
+          senderName: (data.sender_firstname && data.sender_lastname)
+            ? `${data.sender_firstname} ${data.sender_lastname}`.trim()
+            : data.sender_username,
           timestamp: Date.now(),
           room: data.room_id,
           created_date: nowStr,
@@ -124,7 +130,12 @@ export function useWebSocket(roomId: number | null) {
         id: tempMessageId,
         text: text,
         senderId: String(currentUser.id),
-        senderName: currentUser.username,
+        senderUsername: currentUser.username,
+        senderFirstName: currentUser.first_name,
+        senderLastName: currentUser.last_name,
+        senderName: (currentUser.first_name && currentUser.last_name)
+            ? `${currentUser.first_name} ${currentUser.last_name}`.trim()
+            : currentUser.username,
         timestamp: now,
         room: roomId,
         created_date: new Date(now).toISOString(),

@@ -5,6 +5,7 @@ from room.models import Room
 from message.api.v1.serializers import MessageIdsSerializer
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
+from accounts.models import Profile
 
 
 
@@ -46,6 +47,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message":  event["message"],
             "room_id":event["room_id"],
             "sender_id": event["sender_id"],
+            "sender_username":event["sender_username"],
+            "sender_firstname":event.get('sender_firstname'),
+            "sender_lastname":event.get('sender_lastname'),
             "message_id":event["message_id"]
         }))
 
@@ -133,10 +137,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 user=self.user,
                 room=self.room,
                 text=text,)
+        profile= profile = await Profile.objects.aget(user=self.user)
         await self.channel_layer.group_send(self.room_group_name,{
             "type":"chat.message",
             "message":message.text,
             "sender_id":self.user.pk,
+            "sender_username":self.user.username,
+            "sender_firstname":profile.first_name,
+            "sender_lastname":profile.last_name,
             "message_id":message.id,
             "room_id":self.room_id
             },)

@@ -35,7 +35,7 @@ class CustomeTokenObtainPairSerializer(TokenObtainPairSerializer):
         return validated_data
     
 class ProfileSerializer(serializers.ModelSerializer):
-    
+    username = serializers.ReadOnlyField(source='user.username')
     class Meta:
         model = Profile
-        fields = ['pk','first_name','last_name','gender','avatar']
+        fields = ['pk','first_name','last_name','gender','avatar','username']

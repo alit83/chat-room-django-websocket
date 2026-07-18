@@ -75,6 +75,7 @@ export const authApi = {
 
 // Messages
 export type MessageItem = {
+  pk: number
   sender: { pk: number; first_name: string; last_name: string; avatar: string | null; gender: number | null }
   text: string
   room: number

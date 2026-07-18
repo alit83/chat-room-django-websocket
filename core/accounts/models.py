@@ -78,7 +78,6 @@ class Profile(models.Model):
     updated_date = models.DateTimeField(auto_now=True)
 
 
-
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
     if created:

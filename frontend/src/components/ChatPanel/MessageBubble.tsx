@@ -12,13 +12,12 @@ type MessageBubbleProps = {
 export function MessageBubble({ message, animationIndex }: MessageBubbleProps) {
   const userId = useAuthStore((s) => s.user?.id)
   const isMe = userId != null && String(message.senderId) === String(userId)
-  
-  // Ponytail: debug log for alignment mismatch
-  // console.log('DEBUG: MessageBubble', { messageId: message.id, senderId: message.senderId, userId, isMe });
-  console.log(message);
-  
-  
-  
+
+  const displayName = message.senderName
+    || (message.senderFirstName && message.senderLastName
+      ? `${message.senderFirstName} ${message.senderLastName}`.trim()
+      : message.senderUsername)
+    || 'User'  
 
   return (
     <div
@@ -31,7 +30,7 @@ export function MessageBubble({ message, animationIndex }: MessageBubbleProps) {
       <div className={cn('max-w-[70%] flex flex-col', isMe ? 'items-end' : 'items-start')}>
         {!isMe && (
           <p className="mb-0.5 px-1 text-[11px] font-medium text-[var(--text-muted)]">
-            {message.senderName || 'User'}
+            {displayName}
           </p>
         )}
         <div

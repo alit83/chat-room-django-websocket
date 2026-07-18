@@ -12,6 +12,9 @@ export type Message = {
   text: string
   senderId: string
   senderName?: string
+  senderUsername?: string
+  senderFirstName?: string
+  senderLastName?: string
   timestamp: number
   room: number
   created_date: string
