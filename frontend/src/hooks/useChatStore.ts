@@ -24,7 +24,7 @@ type ChatStore = {
   setTyping: (userId: string | number, isTyping: boolean) => void
   setUserPresence: (userId: string | number, isOnline: boolean, lastSeen?: string) => void
   addOptimisticMessage: (message: Message) => void
-  confirmOptimisticMessage: (tempId: number) => void
+  confirmOptimisticMessage: (tempId: string | number, confirmedMessage: Message) => void
   removeOptimisticMessage: (tempId: number) => void
   selectChat: (id: string) => void
   clearActiveChat: () => void
@@ -51,6 +51,7 @@ function mapRoomToChat(room: Record<string, unknown>): ChatWithPagination {
     lastMessageAt: 0,
     unread: 0,
     typingUsers: [],
+    creatorId: room.creator != null ? String(room.creator) : undefined,
     currentPage: 0,
     hasMoreMessages: true,
     loadingMessages: false,
@@ -66,9 +67,10 @@ function mapMessageToMessage(msg: Record<string, unknown>): Message {
 
   return {
     // No stable id from the API — derive a unique key from room + sender + timestamp.
-    id: (msg.id as string | number)
-      ?? (msg.message_id as string | number)
-      ?? `${room}-${senderPk}-${createdDate}`,
+    id: (msg.pk as string | number)
+     ?? (msg.id as string | number)
+     ?? (msg.message_id as string | number)
+     ?? `${room}-${senderPk}-${createdDate}`,
     text: (msg.text as string) || (msg.message as string),
     senderId: String(senderPk),
     senderUsername: sender?.username as string | undefined,
@@ -177,7 +179,15 @@ export const useChatStore = create<ChatStore>((set) => ({
           : c,
       ),
     })),
-  confirmOptimisticMessage: () => {},
+  confirmOptimisticMessage: (tempId, confirmedMessage) =>
+    set((state) => ({
+     chats: state.chats.map((c) => ({
+       ...c,
+       messages: c.messages.map((m) =>
+         m.id === tempId ? { ...confirmedMessage, id: confirmedMessage.id } : m,
+       ),
+     })),
+   })),
   removeOptimisticMessage: (tempId) =>
     set((state) => ({
       chats: state.chats.map((c) => ({

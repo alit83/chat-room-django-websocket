@@ -33,6 +33,7 @@ export function useWebSocket(roomId: number | null) {
   const heartbeatIntervalRef = useRef<number | null>(null)
   const reconnectTimeoutRef = useRef<number | null>(null)
   const reconnectAttempts = useRef(0)
+  const pendingTempIds = useRef<string[]>([])
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,6 +41,7 @@ export function useWebSocket(roomId: number | null) {
   const {
     addMessage,
     updateMessage,
+    confirmOptimisticMessage,
     deleteMessages: storeDeleteMessages,
     markMessagesAsRead,
     setTyping,
@@ -72,13 +74,21 @@ export function useWebSocket(roomId: number | null) {
           updated_date: nowStr,
         }
 
-        // If the sender is the current user, assume this is the server's confirmation
-        // for an optimistically sent message. Update the existing message rather than adding a new one.
+
+        // If the sender is the current user, this confirms our oldest pending
+       // optimistic send — swap its temp id for the real server-assigned one.
         if (currentUser?.id && data.sender_id === currentUser.id) {
-          updateMessage(msg.id, { ...msg, id: msg.id }) // Update with real ID and data
-        } else {
-          addMessage(msg)
-        }
+         const tempId = pendingTempIds.current.shift()
+         if (tempId) {
+           confirmOptimisticMessage(tempId, msg)
+         } else {
+           // No pending optimistic message found (e.g. sent from another
+           // tab/device) — just add it as a normal incoming message.
+           addMessage(msg)
+         }
+       } else {
+         addMessage(msg)
+       }
         break
       }
       case 'message_edit': {
@@ -123,7 +133,6 @@ export function useWebSocket(roomId: number | null) {
     const now = Date.now()
     const tempMessageId = `temp-${now}` // Unique temporary ID for optimistic update
     const currentUser = useAuthStore.getState().user
-    console.log('DEBUG: sendMessage current user state', currentUser);
 
     if (currentUser?.id && roomId) {
       addMessage({
@@ -141,8 +150,9 @@ export function useWebSocket(roomId: number | null) {
         created_date: new Date(now).toISOString(),
         updated_date: new Date(now).toISOString(),
       })
+      pendingTempIds.current.push(tempMessageId)
     } else {
-      console.error('DEBUG: Missing currentUser.id or roomId', { currentUser, roomId });
+      console.error('Missing currentUser.id or roomId', { currentUser, roomId })
     }
     send({ type: 'message', message: text })
   }, [send, addMessage, roomId])

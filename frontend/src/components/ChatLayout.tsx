@@ -13,8 +13,8 @@ export function ChatLayout() {
   const { searchQuery, setSearchQuery, activeChatId, selectChat, clearActiveChat, loadRooms, loadMessages, loading } = useChatStore()
   const filteredChats = useFilteredChats()
   const activeChat = useActiveChat()
-  const { token } = useAuthStore()
-  const { sendMessage, setTypingStatus, connected, error } = useWebSocket(activeChatId ? Number(activeChatId) : null)
+  const { token, user } = useAuthStore()
+  const { sendMessage, editMessage, deleteMessages, setTypingStatus, connected, error } = useWebSocket(activeChatId ? Number(activeChatId) : null)
 
   const [isTyping, setIsTyping] = useState(false)
   const showChatOnMobile = !!activeChatId
@@ -33,9 +33,23 @@ export function ChatLayout() {
     }
   }, [activeChatId, token, loadMessages])
 
-  const handleSend = (text: string) => {
+ const handleSend = (text: string) => {
     sendMessage(text)
   }
+
+ const canDeleteMessages = !!(
+   activeChat?.creatorId &&
+   user?.id != null &&
+   String(activeChat.creatorId) === String(user.id)
+ )
+
+ const handleEditMessage = (id: string | number, text: string) => {
+   editMessage(Number(id), text)
+ }
+
+ const handleDeleteMessage = (id: string | number) => {
+   deleteMessages([Number(id)])
+ }
 
   const handleTyping = (focused: boolean) => {
     setIsTyping(focused)
@@ -107,7 +121,11 @@ export function ChatLayout() {
               onBack={clearActiveChat}
               isTyping={isTyping}
             />
-            <MessageList />
+             <MessageList
+              canDeleteMessages={canDeleteMessages}
+              onEditMessage={handleEditMessage}
+              onDeleteMessage={handleDeleteMessage}
+           />
             <MessageInput
               onSend={handleSend}
               onFocusChange={handleTyping}

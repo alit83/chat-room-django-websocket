@@ -2,7 +2,13 @@ import { useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { useChatStore, useActiveChat } from '../../hooks/useChatStore'
 
-export function MessageList() {
+type MessageListProps = {
+  canDeleteMessages?: boolean
+  onEditMessage?: (id: string | number, text: string) => void
+  onDeleteMessage?: (id: string | number) => void
+}
+
+export function MessageList({ canDeleteMessages = false, onEditMessage, onDeleteMessage }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const previousScrollHeight = useRef<number>(0)
@@ -85,7 +91,16 @@ export function MessageList() {
     <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-4" ref={scrollRef}>
       <div className="flex flex-col gap-3">
         {loadingMessages && <div className="text-center text-gray-500">Loading...</div>}
-        {messages.map((m, i) => <MessageBubble key={m.id} message={m} animationIndex={i} />)}
+        {messages.map((m, i) => (
+          <MessageBubble
+            key={m.id}
+            message={m}
+            animationIndex={i}
+            canDelete={canDeleteMessages}
+            onEdit={onEditMessage}
+            onDelete={onDeleteMessage}
+          />
+        ))}
         <div ref={bottomRef} />
       </div>
     </div>

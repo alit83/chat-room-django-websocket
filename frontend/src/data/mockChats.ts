@@ -30,6 +30,7 @@ export type Chat = {
   lastMessageAt: number
   unread: number
   typingUsers?: (string | number)[]
+  creatorId?: string
 }
 
 const now = Date.now()
