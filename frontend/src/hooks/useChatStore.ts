@@ -21,7 +21,7 @@ type ChatStore = {
   updateMessage: (id: string | number, updates: Partial<Message>) => void
   deleteMessages: (ids: (string | number)[]) => void
   markMessagesAsRead: (ids: (string | number)[]) => void
-  setTyping: (userId: string | number, isTyping: boolean) => void
+  setTyping: (roomId: number, userId: string | number, isTyping: boolean) => void
   setUserPresence: (userId: string | number, isOnline: boolean, lastSeen?: string) => void
   addOptimisticMessage: (message: Message) => void
   confirmOptimisticMessage: (tempId: string | number, confirmedMessage: Message) => void
@@ -147,15 +147,19 @@ export const useChatStore = create<ChatStore>((set) => ({
         })),
       }
     }),
-  setTyping: (userId, isTyping) =>
-    set((state) => ({
-      chats: state.chats.map((c) => ({
-        ...c,
-        typingUsers: isTyping
-          ? [...new Set([...(c.typingUsers || []), userId])]
-          : (c.typingUsers || []).filter((id) => id !== userId),
-      })),
-    })),
+  setTyping: (roomId, userId, isTyping) =>
+   set((state) => ({
+     chats: state.chats.map((c) =>
+       c.id === String(roomId)
+         ? {
+             ...c,
+             typingUsers: isTyping
+               ? [...new Set([...(c.typingUsers || []), userId])]
+               : (c.typingUsers || []).filter((id) => String(id) !== String(userId)),
+           }
+         : c,
+     ),
+   })),
   setUserPresence: (userId, isOnline) =>
     set((state) => ({
       chats: state.chats.map((c) => ({

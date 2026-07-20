@@ -106,7 +106,7 @@ export function useWebSocket(roomId: number | null) {
       case 'typing': {
         // Only update if the typing event is not from the current user
         if (currentUser && data.user_id !== currentUser.id) {
-          setTyping(data.user_id, data.is_typing)
+          setTyping(data.room_id, data.user_id, data.is_typing)
         }
         break
       }

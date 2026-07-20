@@ -1,13 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useChatStore, useFilteredChats, useActiveChat } from '../hooks/useChatStore'
 import { useAuthStore } from '../hooks/useAuthStore'
 import { useWebSocket } from '../hooks/useWebSocket'
+import { roomsApi } from '../lib/api'
 import { SearchBar } from './Sidebar/SearchBar'
 import { ChatList } from './Sidebar/ChatList'
 import { ChatHeader } from './ChatPanel/ChatHeader'
 import { MessageList } from './ChatPanel/MessageList'
 import { MessageInput } from './ChatPanel/MessageInput'
 import { cn } from '../lib/cn'
+
+type ParticipantInfo = { firstName?: string; lastName?: string; username?: string }
+
+function resolveTypingName(
+  userId: string | number,
+  roomParticipants: Record<string, ParticipantInfo>,
+  messages: { senderId: string; senderFirstName?: string; senderLastName?: string; senderUsername?: string; senderName?: string }[],
+): string {
+  const key = String(userId)
+  const fromDetail = roomParticipants[key]
+  if (fromDetail) {
+    return fromDetail.firstName && fromDetail.lastName
+      ? `${fromDetail.firstName} ${fromDetail.lastName}`.trim()
+      : fromDetail.username || 'Someone'
+  }
+  // Fallback: user typing before we've fetched room detail yet — try
+  // to resolve their name from a message we've already seen from them.
+  const fromMessage = messages.find((m) => String(m.senderId) === key)
+  if (fromMessage) {
+    return fromMessage.senderFirstName && fromMessage.senderLastName
+      ? `${fromMessage.senderFirstName} ${fromMessage.senderLastName}`.trim()
+      : fromMessage.senderUsername || fromMessage.senderName || 'Someone'
+  }
+  return 'Someone'
+}
+
 
 export function ChatLayout() {
   const { searchQuery, setSearchQuery, activeChatId, selectChat, clearActiveChat, loadRooms, loadMessages, loading } = useChatStore()
@@ -16,7 +43,7 @@ export function ChatLayout() {
   const { token, user } = useAuthStore()
   const { sendMessage, editMessage, deleteMessages, setTypingStatus, connected, error } = useWebSocket(activeChatId ? Number(activeChatId) : null)
 
-  const [isTyping, setIsTyping] = useState(false)
+  const [participantsByRoom, setParticipantsByRoom] = useState<Record<string, Record<string, ParticipantInfo>>>({})
   const showChatOnMobile = !!activeChatId
 
   // Load rooms on mount
@@ -32,6 +59,20 @@ export function ChatLayout() {
       loadMessages(Number(activeChatId))
     }
   }, [activeChatId, token, loadMessages])
+  // Fetch participant names once per room, so typing indicators can show a
+  // name even before that participant has sent any message this session.
+  useEffect(() => {
+    if (!activeChatId || !token || participantsByRoom[activeChatId]) return
+    roomsApi.detail(Number(activeChatId))
+      .then((detail) => {
+        const map: Record<string, ParticipantInfo> = {}
+        detail.participants.forEach((p) => {
+          map[String(p.pk)] = { firstName: p.first_name, lastName: p.last_name, username: p.username }
+        })
+        setParticipantsByRoom((prev) => ({ ...prev, [activeChatId]: map }))
+      })
+      .catch((err) => console.error('Failed to load room participants:', err))
+  }, [activeChatId, token, participantsByRoom])
 
  const handleSend = (text: string) => {
     sendMessage(text)
@@ -52,10 +93,16 @@ export function ChatLayout() {
  }
 
   const handleTyping = (focused: boolean) => {
-    setIsTyping(focused)
-    setTypingStatus(focused)
+   setTypingStatus(focused)
   }
 
+  const typingNames = useMemo(() => {
+    if (!activeChat?.typingUsers?.length) return []
+    const roomParticipants = participantsByRoom[activeChat.id] || {}
+    return activeChat.typingUsers
+      .filter((uid) => user?.id == null || String(uid) !== String(user.id))
+      .map((uid) => resolveTypingName(uid, roomParticipants, activeChat.messages))
+  }, [activeChat?.typingUsers, activeChat?.messages, activeChat?.id, participantsByRoom, user?.id])
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-[var(--bg-primary)]">
       {/* Sidebar */}
@@ -119,7 +166,7 @@ export function ChatLayout() {
               user={activeChat.user}
               showBack
               onBack={clearActiveChat}
-              isTyping={isTyping}
+              typingNames={typingNames}
             />
              <MessageList
               isRoomCreator={isRoomCreator}

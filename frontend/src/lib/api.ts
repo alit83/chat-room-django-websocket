@@ -2,7 +2,7 @@ import { useAuthStore } from '../hooks/useAuthStore'
 
 const API_BASE = import.meta.env.VITE_API_URL 
   ? `${import.meta.env.VITE_API_URL}` 
-  : 'http://127.0.0.1:8000';
+  : 'http://192.168.1.3:8000';
 
 async function rawRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = { 'Content-Type': 'application/json', ...(options.headers as Record<string, string>) }
@@ -113,7 +113,7 @@ export type RoomDetail = {
   link: string | null
   model: number
   creator: number
-  participants: { first_name: string; last_name: string; avatar: string | null }[]
+  participants: { pk: number; username: string; first_name: string; last_name: string; avatar: string | null; gender: number | null }[]
   profile: string | null
 }
 
