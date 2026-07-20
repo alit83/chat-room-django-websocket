@@ -8,7 +8,7 @@ type WSMessage =
   | { type: 'message'; room_id: number; message_id: number; sender_id: number; message: string; sender_username: string; sender_firstname: string; sender_lastname: string }
   | { type: 'message_edit'; room_id: number; message_id: number; sender_id: number; message: string; edited_at: string }
   | { type: 'message_delete'; room_id: number; user_id: number; message_ids: number[] }
-  | { type: 'read'; room_id: number; user_id: number; message_ids: number[] }
+  | { type: 'read'; room_id: number; user_id: number; message_ids: number[]; read_at: string }
   | { type: 'typing'; room_id: number; user_id: number; is_typing: boolean }
   | { type: 'presence'; user_id: number; is_online: boolean; last_seen?: string }
   | { type: 'error'; error: string }
@@ -43,7 +43,7 @@ export function useWebSocket(roomId: number | null) {
     updateMessage,
     confirmOptimisticMessage,
     deleteMessages: storeDeleteMessages,
-    markMessagesAsRead,
+    applyReadReceipt,
     setTyping,
     setUserPresence,
   } = useChatStore()
@@ -100,7 +100,7 @@ export function useWebSocket(roomId: number | null) {
         break
       }
       case 'read': {
-        markMessagesAsRead(data.message_ids)
+         applyReadReceipt(data.room_id, data.user_id, data.message_ids, data.read_at)
         break
       }
       case 'typing': {
@@ -119,7 +119,7 @@ export function useWebSocket(roomId: number | null) {
         console.warn('Unknown WebSocket event type:', data)
         break
     }
-  }, [addMessage, updateMessage, storeDeleteMessages, markMessagesAsRead, setTyping, setUserPresence, currentUser])
+  }, [addMessage, updateMessage, storeDeleteMessages, applyReadReceipt, setTyping, setUserPresence, currentUser])
   const send = useCallback((msg: ClientMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg))

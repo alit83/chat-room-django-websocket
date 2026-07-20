@@ -4,6 +4,7 @@ import { formatTime } from '../../lib/formatTime'
 import { cn } from '../../lib/cn'
 import { useAuthStore } from '../../hooks/useAuthStore'
 import { MessageContextMenu } from './MessageContextMenu'
+import { resolveParticipantName, type ParticipantInfo } from '../../lib/participants'
 
 type MessageBubbleProps = {
   message: Message
@@ -11,16 +12,26 @@ type MessageBubbleProps = {
   isRoomCreator?: boolean
   onEdit?: (id: string | number, text: string) => void
   onDelete?: (id: string | number) => void
+  participants?: Record<string, ParticipantInfo>
+  allMessages?: Message[]
 }
 
 // Messages loaded via REST pagination don't carry a real numeric id from the
 // backend yet — only ones received live over the WebSocket this session do.
 // Edit/Delete need that real id to send a valid websocket request.
-function hasRealId(id: string | number) {
+export function hasRealId(id: string | number) {
   return typeof id === 'number' || /^\d+$/.test(String(id))
 }
 
-export function MessageBubble({ message, animationIndex, isRoomCreator = false, onEdit, onDelete }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  animationIndex,
+  isRoomCreator = false,
+  onEdit,
+  onDelete,
+  participants = {},
+  allMessages = [],
+}: MessageBubbleProps) {
   const userId = useAuthStore((s) => s.user?.id)
   const isMe = userId != null && String(message.senderId) === String(userId)
   const editable = hasRealId(message.id)
@@ -63,6 +74,11 @@ export function MessageBubble({ message, animationIndex, isRoomCreator = false, 
   const canEdit = isMe && editable
   const canDeleteThis = (isRoomCreator || isMe) && editable
   const wasEdited = wasActuallyEdited(message)
+
+  const readByOthers = isMe
+   ? (message.readBy || []).filter((r) => r.userId !== String(userId))
+   : []
+  const readByNames = readByOthers.map((r) => resolveParticipantName(r.userId, participants, allMessages))
 
   return (
     <div
@@ -124,7 +140,23 @@ export function MessageBubble({ message, animationIndex, isRoomCreator = false, 
             isMe ? 'justify-end' : 'justify-start',
           )}
         >
-          {isMe && <span className="text-[var(--accent)]">✓</span>}
+          {isMe && (
+           <span
+             className="group relative inline-flex cursor-default items-center"
+             title={readByNames.length > 0 ? `Seen by ${readByNames.join(', ')}` : 'Sent'}
+           >
+             {readByOthers.length > 0 ? (
+               <svg className="h-3.5 w-3.5 text-[var(--accent)]" viewBox="0 0 16 16" fill="none">
+                 <path d="M1 8.5L4.5 12L10 5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                 <path d="M6 8.5L9.5 12L15 5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+               </svg>
+             ) : (
+               <svg className="h-3.5 w-3.5 text-[var(--text-muted)]" viewBox="0 0 16 16" fill="none">
+                 <path d="M1 8.5L5.5 13L15 3" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+               </svg>
+             )}
+           </span>
+         )}
           {formatTime(message.timestamp)}
           {wasEdited && !isEditing && <span className="italic">edited</span>}
         </p>

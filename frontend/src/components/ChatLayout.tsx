@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { resolveParticipantName, type ParticipantInfo } from '../lib/participants'
 import { useChatStore, useFilteredChats, useActiveChat } from '../hooks/useChatStore'
 import { useAuthStore } from '../hooks/useAuthStore'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -10,30 +11,9 @@ import { MessageList } from './ChatPanel/MessageList'
 import { MessageInput } from './ChatPanel/MessageInput'
 import { cn } from '../lib/cn'
 
-type ParticipantInfo = { firstName?: string; lastName?: string; username?: string }
 
-function resolveTypingName(
-  userId: string | number,
-  roomParticipants: Record<string, ParticipantInfo>,
-  messages: { senderId: string; senderFirstName?: string; senderLastName?: string; senderUsername?: string; senderName?: string }[],
-): string {
-  const key = String(userId)
-  const fromDetail = roomParticipants[key]
-  if (fromDetail) {
-    return fromDetail.firstName && fromDetail.lastName
-      ? `${fromDetail.firstName} ${fromDetail.lastName}`.trim()
-      : fromDetail.username || 'Someone'
-  }
-  // Fallback: user typing before we've fetched room detail yet — try
-  // to resolve their name from a message we've already seen from them.
-  const fromMessage = messages.find((m) => String(m.senderId) === key)
-  if (fromMessage) {
-    return fromMessage.senderFirstName && fromMessage.senderLastName
-      ? `${fromMessage.senderFirstName} ${fromMessage.senderLastName}`.trim()
-      : fromMessage.senderUsername || fromMessage.senderName || 'Someone'
-  }
-  return 'Someone'
-}
+
+
 
 
 export function ChatLayout() {
@@ -41,7 +21,7 @@ export function ChatLayout() {
   const filteredChats = useFilteredChats()
   const activeChat = useActiveChat()
   const { token, user } = useAuthStore()
-  const { sendMessage, editMessage, deleteMessages, setTypingStatus, connected, error } = useWebSocket(activeChatId ? Number(activeChatId) : null)
+  const { sendMessage, editMessage, deleteMessages, markAsRead, setTypingStatus, connected, error } = useWebSocket(activeChatId ? Number(activeChatId) : null)
 
   const [participantsByRoom, setParticipantsByRoom] = useState<Record<string, Record<string, ParticipantInfo>>>({})
   const showChatOnMobile = !!activeChatId
@@ -74,6 +54,8 @@ export function ChatLayout() {
       .catch((err) => console.error('Failed to load room participants:', err))
   }, [activeChatId, token, participantsByRoom])
 
+
+
  const handleSend = (text: string) => {
     sendMessage(text)
   }
@@ -101,7 +83,7 @@ export function ChatLayout() {
     const roomParticipants = participantsByRoom[activeChat.id] || {}
     return activeChat.typingUsers
       .filter((uid) => user?.id == null || String(uid) !== String(user.id))
-      .map((uid) => resolveTypingName(uid, roomParticipants, activeChat.messages))
+      .map((uid) => resolveParticipantName(uid, roomParticipants, activeChat.messages))
   }, [activeChat?.typingUsers, activeChat?.messages, activeChat?.id, participantsByRoom, user?.id])
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-[var(--bg-primary)]">
@@ -172,6 +154,9 @@ export function ChatLayout() {
               isRoomCreator={isRoomCreator}
               onEditMessage={handleEditMessage}
               onDeleteMessage={handleDeleteMessage}
+              participants={participantsByRoom[activeChat.id] || {}}
+              currentUserId={user?.id ?? null}
+             onMessagesRead={connected ? markAsRead : undefined}
            />
             <MessageInput
               onSend={handleSend}

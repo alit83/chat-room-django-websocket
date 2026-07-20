@@ -20,7 +20,7 @@ type ChatStore = {
   addMessage: (message: Message) => void
   updateMessage: (id: string | number, updates: Partial<Message>) => void
   deleteMessages: (ids: (string | number)[]) => void
-  markMessagesAsRead: (ids: (string | number)[]) => void
+  applyReadReceipt: (roomId: number, userId: string | number, messageIds: (string | number)[], readAt: string) => void
   setTyping: (roomId: number, userId: string | number, isTyping: boolean) => void
   setUserPresence: (userId: string | number, isOnline: boolean, lastSeen?: string) => void
   addOptimisticMessage: (message: Message) => void
@@ -84,6 +84,12 @@ function mapMessageToMessage(msg: Record<string, unknown>): Message {
     created_date: createdDate,
     updated_date: (msg.updated_date as string) || createdDate,
     read: msg.read as boolean | undefined,
+    readBy: Array.isArray(msg.read_by)
+     ? (msg.read_by as Array<{ user: number; read_date: string }>).map((r) => ({
+         userId: String(r.user),
+         readAt: r.read_date,
+       }))
+     : undefined,
   }
 }
 
@@ -134,19 +140,28 @@ export const useChatStore = create<ChatStore>((set) => ({
         })),
       }
     }),
-  markMessagesAsRead: (ids) =>
-    set((state) => {
-      const idSet = new Set(ids.map(String))
-      return {
-        chats: state.chats.map((c) => ({
-          ...c,
-          messages: c.messages.map((m) =>
-            idSet.has(String(m.id)) ? { ...m, read: true } : m,
-          ),
-          unread: 0,
-        })),
-      }
-    }),
+  applyReadReceipt: (roomId, userId, messageIds, readAt) =>
+   set((state) => {
+     const idSet = new Set(messageIds.map(String))
+     const readerId = String(userId)
+     return {
+       chats: state.chats.map((c) => {
+         if (c.id !== String(roomId)) return c
+         return {
+           ...c,
+           messages: c.messages.map((m) => {
+             if (!idSet.has(String(m.id))) return m
+             const alreadyRead = (m.readBy || []).some((r) => r.userId === readerId)
+             return {
+               ...m,
+               read: true,
+               readBy: alreadyRead ? m.readBy : [...(m.readBy || []), { userId: readerId, readAt }],
+             }
+           }),
+         }
+       }),
+     }
+   }),
   setTyping: (roomId, userId, isTyping) =>
    set((state) => ({
      chats: state.chats.map((c) =>

@@ -6,6 +6,7 @@ export type User = {
   avatar: string
   online?: boolean
 }
+export type ReadReceipt = { userId: string; readAt: string }
 
 export type Message = {
   id: string | number
@@ -20,6 +21,7 @@ export type Message = {
   created_date: string
   updated_date: string
   read?: boolean
+  readBy?: ReadReceipt[]
 }
 
 export type Chat = {

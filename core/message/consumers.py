@@ -81,6 +81,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "room_id":event['room_id'],
             "user_id": event["user_id"],
             "message_ids": event["message_ids"],
+            "read_at": event["read_at"]
         })
     )
         
@@ -185,11 +186,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
         if not read_messages:
             return
+        read_at =  timezone.now()
         await self.channel_layer.group_send(self.room_group_name,{
             "type":"chat.read",
             "user_id":self.user.pk,
             "room_id":self.room_id,
-            "message_ids":read_messages
+            "message_ids":read_messages,
+            "read_at": read_at.isoformat()
             },)
 
     async def broadcast_presence(self,connections):
