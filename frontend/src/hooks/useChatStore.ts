@@ -120,7 +120,7 @@ export const useChatStore = create<ChatStore>((set) => ({
       chats: state.chats.map((c) => ({
         ...c,
         messages: c.messages.map((m) =>
-          m.id === id ? { ...m, ...updates } : m,
+          String(m.id) === String(id) ? { ...m, ...updates } : m,
         ),
       })),
     })),

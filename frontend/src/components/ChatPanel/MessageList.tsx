@@ -3,12 +3,12 @@ import { MessageBubble } from './MessageBubble'
 import { useChatStore, useActiveChat } from '../../hooks/useChatStore'
 
 type MessageListProps = {
-  canDeleteMessages?: boolean
+  isRoomCreator?: boolean
   onEditMessage?: (id: string | number, text: string) => void
   onDeleteMessage?: (id: string | number) => void
 }
 
-export function MessageList({ canDeleteMessages = false, onEditMessage, onDeleteMessage }: MessageListProps) {
+export function MessageList({ isRoomCreator = false, onEditMessage, onDeleteMessage }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const previousScrollHeight = useRef<number>(0)
@@ -96,7 +96,7 @@ export function MessageList({ canDeleteMessages = false, onEditMessage, onDelete
             key={m.id}
             message={m}
             animationIndex={i}
-            canDelete={canDeleteMessages}
+            isRoomCreator={isRoomCreator}
             onEdit={onEditMessage}
             onDelete={onDeleteMessage}
           />

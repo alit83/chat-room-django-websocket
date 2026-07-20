@@ -37,7 +37,7 @@ export function ChatLayout() {
     sendMessage(text)
   }
 
- const canDeleteMessages = !!(
+ const isRoomCreator = !!(
    activeChat?.creatorId &&
    user?.id != null &&
    String(activeChat.creatorId) === String(user.id)
@@ -122,7 +122,7 @@ export function ChatLayout() {
               isTyping={isTyping}
             />
              <MessageList
-              canDeleteMessages={canDeleteMessages}
+              isRoomCreator={isRoomCreator}
               onEditMessage={handleEditMessage}
               onDeleteMessage={handleDeleteMessage}
            />

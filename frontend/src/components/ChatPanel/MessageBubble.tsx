@@ -8,7 +8,7 @@ import { MessageContextMenu } from './MessageContextMenu'
 type MessageBubbleProps = {
   message: Message
   animationIndex: number
-  canDelete?: boolean
+  isRoomCreator?: boolean
   onEdit?: (id: string | number, text: string) => void
   onDelete?: (id: string | number) => void
 }
@@ -20,7 +20,7 @@ function hasRealId(id: string | number) {
   return typeof id === 'number' || /^\d+$/.test(String(id))
 }
 
-export function MessageBubble({ message, animationIndex, canDelete = false, onEdit, onDelete }: MessageBubbleProps) {
+export function MessageBubble({ message, animationIndex, isRoomCreator = false, onEdit, onDelete }: MessageBubbleProps) {
   const userId = useAuthStore((s) => s.user?.id)
   const isMe = userId != null && String(message.senderId) === String(userId)
   const editable = hasRealId(message.id)
@@ -61,7 +61,7 @@ export function MessageBubble({ message, animationIndex, canDelete = false, onEd
   }
 
   const canEdit = isMe && editable
-  const canDeleteThis = canDelete && editable
+  const canDeleteThis = (isRoomCreator || isMe) && editable
   const wasEdited = wasActuallyEdited(message)
 
   return (

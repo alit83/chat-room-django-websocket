@@ -87,7 +87,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message_delete(self,event):
         await self.send(
         text_data=json.dumps({
-            "type": "read",
+            "type": "message_delete",
             "room_id":event['room_id'],
             "user_id": event["user_id"],
             "message_ids": event["message_ids"],
