@@ -6,6 +6,7 @@ type ChatHeaderProps = {
   showBack?: boolean
   onBack?: () => void
   typingNames?: string[]
+  onOpenInfo?: () => void
 }
 
 function formatTypingLabel(names: string[]): string {
@@ -20,6 +21,7 @@ export function ChatHeader({
   showBack,
   onBack,
   typingNames = [],
+  onOpenInfo,
 }: ChatHeaderProps) {
   const isTyping = typingNames.length > 0
   return (
@@ -37,32 +39,40 @@ export function ChatHeader({
           </svg>
         </button>
       )}
-      <Avatar label={user.avatar} online={user.online} size="lg" />
-      <div className="min-w-0 flex-1">
-        <h2 className="truncate font-semibold text-[var(--text-primary)]">
-          {user.name}
-        </h2>
-        <p className="text-sm text-[var(--text-muted)]">
-          {isTyping ? (
-            <span className="inline-flex items-center gap-1 text-[var(--accent)]">
-              {formatTypingLabel(typingNames)}
-              <span className="inline-flex gap-0.5">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="inline-block h-1 w-1 animate-bounce rounded-full bg-[var(--accent)]"
-                    style={{ animationDelay: `${i * 150}ms` }}
-                  />
-                ))}
+      <button
+        type="button"
+        onClick={onOpenInfo}
+        data-cursor="pointer"
+        disabled={!onOpenInfo}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 text-left transition-colors hover:bg-white/[0.03] disabled:cursor-default disabled:hover:bg-transparent"
+      >
+        <Avatar label={user.avatar} online={user.online} size="lg" />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate font-semibold text-[var(--text-primary)]">
+            {user.name}
+          </h2>
+          <p className="text-sm text-[var(--text-muted)]">
+            {isTyping ? (
+              <span className="inline-flex items-center gap-1 text-[var(--accent)]">
+                {formatTypingLabel(typingNames)}
+                <span className="inline-flex gap-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="inline-block h-1 w-1 animate-bounce rounded-full bg-[var(--accent)]"
+                      style={{ animationDelay: `${i * 150}ms` }}
+                    />
+                  ))}
+                </span>
               </span>
-            </span>
-          ) : user.online ? (
-            <span className="text-emerald-500">Online</span>
-          ) : (
-            'Last seen recently'
-          )}
-        </p>
-      </div>
+            ) : user.online ? (
+              <span className="text-emerald-500">Online</span>
+            ) : (
+              'Last seen recently'
+            )}
+          </p>
+        </div>
+      </button>
     </header>
   )
 }

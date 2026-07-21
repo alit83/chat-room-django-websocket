@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
+import type { RoomDetail } from '../lib/api'
+import { RoomInfoPanel } from './ChatPanel/RoomInfoPanel'
 import { resolveParticipantName, type ParticipantInfo } from '../lib/participants'
 import { useChatStore, useFilteredChats, useActiveChat } from '../hooks/useChatStore'
 import { useAuthStore } from '../hooks/useAuthStore'
@@ -25,7 +27,9 @@ export function ChatLayout() {
   useNotificationSocket()
   const { sendMessage, editMessage, deleteMessages, markAsRead, setTypingStatus, connected, error } = useWebSocket(activeChatId ? Number(activeChatId) : null)
 
-  const [participantsByRoom, setParticipantsByRoom] = useState<Record<string, Record<string, ParticipantInfo>>>({})
+  const [roomDetailsById, setRoomDetailsById] = useState<Record<string, RoomDetail>>({})
+  const [isRoomInfoOpen, setIsRoomInfoOpen] = useState(false)
+  const onlinePresence = useChatStore((s) => s.onlinePresence)
   const showChatOnMobile = !!activeChatId
 
   // Load rooms on mount
@@ -44,18 +48,26 @@ export function ChatLayout() {
   // Fetch participant names once per room, so typing indicators can show a
   // name even before that participant has sent any message this session.
   useEffect(() => {
-    if (!activeChatId || !token || participantsByRoom[activeChatId]) return
+    if (!activeChatId || !token || roomDetailsById[activeChatId]) return
     roomsApi.detail(Number(activeChatId))
       .then((detail) => {
-        const map: Record<string, ParticipantInfo> = {}
-        detail.participants.forEach((p) => {
-          map[String(p.pk)] = { firstName: p.first_name, lastName: p.last_name, username: p.username }
-        })
-        setParticipantsByRoom((prev) => ({ ...prev, [activeChatId]: map }))
+        
+        setRoomDetailsById((prev) => ({ ...prev, [activeChatId]: detail }))
       })
       .catch((err) => console.error('Failed to load room participants:', err))
-  }, [activeChatId, token, participantsByRoom])
+   }, [activeChatId, token, roomDetailsById])
 
+  // Flattened name lookup, derived from the cached room detail — same shape
+  // typing/read-receipt resolution already expects.
+  const participants = useMemo(() => {
+    const detail = activeChat ? roomDetailsById[activeChat.id] : undefined
+    if (!detail) return {}
+    const map: Record<string, ParticipantInfo> = {}
+    detail.participants.forEach((p) => {
+      map[String(p.pk)] = { firstName: p.first_name, lastName: p.last_name, username: p.username }
+    })
+    return map
+ }, [activeChat?.id, roomDetailsById])
 
 
  const handleSend = (text: string) => {
@@ -82,11 +94,10 @@ export function ChatLayout() {
 
   const typingNames = useMemo(() => {
     if (!activeChat?.typingUsers?.length) return []
-    const roomParticipants = participantsByRoom[activeChat.id] || {}
     return activeChat.typingUsers
       .filter((uid) => user?.id == null || String(uid) !== String(user.id))
-      .map((uid) => resolveParticipantName(uid, roomParticipants, activeChat.messages))
-  }, [activeChat?.typingUsers, activeChat?.messages, activeChat?.id, participantsByRoom, user?.id])
+      .map((uid) => resolveParticipantName(uid, participants, activeChat.messages))
+   }, [activeChat?.typingUsers, activeChat?.messages, activeChat?.id, participants, user?.id])
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-[var(--bg-primary)]">
       {/* Sidebar */}
@@ -151,12 +162,21 @@ export function ChatLayout() {
               showBack
               onBack={clearActiveChat}
               typingNames={typingNames}
+              onOpenInfo={() => setIsRoomInfoOpen(true)}
             />
+            <RoomInfoPanel
+             isOpen={isRoomInfoOpen}
+             onClose={() => setIsRoomInfoOpen(false)}
+             room={activeChat ? roomDetailsById[activeChat.id] ?? null : null}
+             loading={!!activeChat && !roomDetailsById[activeChat.id]}
+             currentUserId={user?.id ?? null}
+             onlinePresence={onlinePresence}
+             />
              <MessageList
               isRoomCreator={isRoomCreator}
               onEditMessage={handleEditMessage}
               onDeleteMessage={handleDeleteMessage}
-              participants={participantsByRoom[activeChat.id] || {}}
+              participants={participants}
               currentUserId={user?.id ?? null}
              onMessagesRead={connected ? markAsRead : undefined}
            />

@@ -13,6 +13,7 @@ type ChatStore = {
   activeChatId: string | null
   searchQuery: string
   loading: boolean
+  onlinePresence: Record<string, { online: boolean; lastSeen?: string }>
   setChats: (chats: ChatWithPagination[]) => void
   setActiveChatId: (id: string | null) => void
   setSearchQuery: (q: string) => void
@@ -104,6 +105,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   activeChatId: null,
   searchQuery: '',
   loading: false,
+  onlinePresence: {},
   setChats: (chats) => set({ chats }),
   setActiveChatId: (activeChatId) => set({ activeChatId }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
@@ -176,7 +178,8 @@ export const useChatStore = create<ChatStore>((set) => ({
          : c,
      ),
    })),
-  setUserPresence: (userId, isOnline) =>
+  setUserPresence: (userId, isOnline, lastSeen) =>
+    
     set((state) => ({
       chats: state.chats.map((c) => ({
         ...c,
@@ -185,6 +188,13 @@ export const useChatStore = create<ChatStore>((set) => ({
             ? { ...c.user, online: isOnline }
             : c.user,
       })),
+      onlinePresence: {
+       ...state.onlinePresence,
+       [String(userId)]: {
+         online: isOnline,
+         lastSeen: lastSeen ?? state.onlinePresence[String(userId)]?.lastSeen,
+       },
+     },
     })),
   addOptimisticMessage: (message) =>
     set((state) => ({

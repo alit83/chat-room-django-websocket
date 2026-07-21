@@ -119,7 +119,7 @@ export type RoomDetail = {
 
 export const roomsApi = {
   list: () => request<RoomItem[]>('/rooms/api/v1/room-list/'),
-  detail: (id: number) => request<RoomDetail>(`/rooms/room-detail/${id}/`),
+  detail: (id: number) => request<RoomDetail>(`/rooms/api/v1/room-detail/${id}/`),
   create: (data: { name: string; link: string; participants: number[]; model: number; profile?: string }) =>
     request<RoomItem>('/rooms/room-create/', {
       method: 'POST',

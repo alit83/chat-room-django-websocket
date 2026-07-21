@@ -134,3 +134,19 @@ body {
 .animate-menu-in {
   animation: menu-in 0.12s ease-out both;
 }
+
+
+@keyframes panel-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-panel-in {
+  animation: panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
