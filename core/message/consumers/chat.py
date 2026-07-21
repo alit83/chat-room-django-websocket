@@ -1,6 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from .services import MessageService , PresenceService
+from ..services import MessageService , PresenceService
 from room.models import Room
 from message.api.v1.serializers import MessageIdsSerializer
 from rest_framework.exceptions import ValidationError
@@ -20,6 +20,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
            # Verify the user belongs to the requested room while fetching it.
             self.room = await Room.objects.aget(pk=self.room_id,participants = self.user.pk)
+            
             await self.channel_layer.group_add(
                 self.room_group_name,
                 self.channel_name)
@@ -39,7 +40,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name)
-
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
@@ -105,6 +105,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         })
     )
 
+
     async def receive(self, text_data):
         """
         Redirect incoming events to their corresponding handler
@@ -149,6 +150,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message_id":message.id,
             "room_id":self.room_id
             },)
+        notification = {
+            "type":"chat.notification",
+            "message":message.text[:80],
+            "sender_id":self.user.pk,
+            "sender_username":self.user.username,
+            "sender_firstname":profile.first_name,
+            "sender_lastname":profile.last_name,
+            "message_id":message.id,
+            "room_id":self.room_id,
+            "created_at": message.created_date.isoformat(),
+            }
+        participants = await MessageService.get_other_participants(room=self.room , user_pk= self.user.pk)
+        for pid in participants:
+            await self.channel_layer.group_send(f"user_{pid}",notification)
+
     async def handle_typing(self,data):
         is_typing = data.get('is_typing')
         if not isinstance(is_typing, bool):

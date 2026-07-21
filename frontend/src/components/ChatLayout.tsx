@@ -10,6 +10,7 @@ import { ChatHeader } from './ChatPanel/ChatHeader'
 import { MessageList } from './ChatPanel/MessageList'
 import { MessageInput } from './ChatPanel/MessageInput'
 import { cn } from '../lib/cn'
+import { useNotificationSocket } from '../hooks/useNotificationSocket'
 
 
 
@@ -21,6 +22,7 @@ export function ChatLayout() {
   const filteredChats = useFilteredChats()
   const activeChat = useActiveChat()
   const { token, user } = useAuthStore()
+  useNotificationSocket()
   const { sendMessage, editMessage, deleteMessages, markAsRead, setTypingStatus, connected, error } = useWebSocket(activeChatId ? Number(activeChatId) : null)
 
   const [participantsByRoom, setParticipantsByRoom] = useState<Record<string, Record<string, ParticipantInfo>>>({})

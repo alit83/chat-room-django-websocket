@@ -39,6 +39,13 @@ class MessageService:
             )
         messages.delete()
 
+    @staticmethod
+    async def get_other_participants(*,room,user_pk):
+        return [
+            pid async for pid in (room.participants.exclude(pk=user_pk).values_list("pk", flat = True))
+        ]
+    
+
             
 
 

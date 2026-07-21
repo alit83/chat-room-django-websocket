@@ -30,6 +30,7 @@ type ChatStore = {
   clearActiveChat: () => void
   loadRooms: () => Promise<void>
   loadMessages: (roomId: number, page?: number, pageSize?: number) => Promise<void>
+  applyRoomNotification: (roomId: number, text: string, createdAt: string) => void
 }
 
 function mapRoomToChat(room: Record<string, unknown>): ChatWithPagination {
@@ -198,6 +199,19 @@ export const useChatStore = create<ChatStore>((set) => ({
           : c,
       ),
     })),
+     applyRoomNotification: (roomId, text, createdAt) =>
+   set((state) => ({
+     chats: state.chats.map((c) =>
+       c.id === String(roomId)
+         ? {
+             ...c,
+             lastMessage: text,
+             lastMessageAt: new Date(createdAt).getTime(),
+             unread: c.id === state.activeChatId ? c.unread : c.unread + 1,
+           }
+         : c,
+     ),
+   })),
   confirmOptimisticMessage: (tempId, confirmedMessage) =>
     set((state) => ({
      chats: state.chats.map((c) => ({
@@ -245,6 +259,7 @@ export const useChatStore = create<ChatStore>((set) => ({
       c.id === String(roomId) ? { ...c, loadingMessages: true } : c
     ),
   }))
+ 
 
   try {
     const data = await messagesApi.list(roomId, page, pageSize)

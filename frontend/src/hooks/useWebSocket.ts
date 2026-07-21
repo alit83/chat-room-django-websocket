@@ -46,6 +46,7 @@ export function useWebSocket(roomId: number | null) {
     applyReadReceipt,
     setTyping,
     setUserPresence,
+    applyRoomNotification,
   } = useChatStore()
 
   const handleMessage = useCallback((data: WSMessage) => {
@@ -119,7 +120,7 @@ export function useWebSocket(roomId: number | null) {
         console.warn('Unknown WebSocket event type:', data)
         break
     }
-  }, [addMessage, updateMessage, storeDeleteMessages, applyReadReceipt, setTyping, setUserPresence, currentUser])
+   }, [addMessage, updateMessage, storeDeleteMessages, applyReadReceipt, setTyping, setUserPresence, currentUser, roomId])
   const send = useCallback((msg: ClientMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg))
