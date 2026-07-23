@@ -33,3 +33,10 @@ class ProfileDetailsApiView(generics.RetrieveAPIView):
         .only("first_name", "last_name", "gender",'avatar')
         .get(user=self.request.user)
     )
+
+class ProfileUpdateApiView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSerializer
+
+    def get_object(self):
+        return Profile.objects.get(user=self.request.user)

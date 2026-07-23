@@ -9,5 +9,6 @@ urlpatterns=[
     path('login/',views.LoginApiView.as_view(),name='login'),
     path('jwt/refresh-token/',TokenRefreshView.as_view(),name='refresh_token'),
     path('jwt/token-verification/',TokenVerifyView.as_view(),name='token_verification'),
-    path('profile/details/',views.ProfileDetailsApiView.as_view(),name='profile_details')
+    path('profile/details/',views.ProfileDetailsApiView.as_view(),name='profile_details'),
+    path('profile/update/',views.ProfileUpdateApiView.as_view(),name='profile_update')
 ]

@@ -2,7 +2,55 @@ import { useAuthStore } from '../hooks/useAuthStore'
 
 const API_BASE = import.meta.env.VITE_API_URL 
   ? `${import.meta.env.VITE_API_URL}` 
-  : 'http://192.168.1.3:8000';
+  : 'http://127.0.0.1:8000';
+
+const API_ORIGIN = (() => {
+  try {
+    return new URL(API_BASE).origin
+  } catch {
+    return ''
+  }
+})()
+
+// Your Profile.avatar field returns a root-relative path like
+// "/media/profiles/x.jpg" — this resolves it against the backend's own
+// origin so <img> tags work regardless of which origin the frontend is
+// served from (Vite dev server vs the API).
+export function resolveMediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+async function requestMultipart<T>(url: string, formData: FormData, method: string = 'PATCH'): Promise<T> {
+  let { token, refreshAccessToken, clearAuth } = useAuthStore.getState()
+  const headers: Record<string, string> = {}
+  // Deliberately no Content-Type here — the browser sets
+  // multipart/form-data with the correct boundary automatically for
+  // FormData bodies; setting it manually breaks the upload.
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  let res = await fetch(`${API_BASE}${url}`, { method, headers, body: formData })
+
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      token = useAuthStore.getState().token
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+        res = await fetch(`${API_BASE}${url}`, { method, headers, body: formData })
+      } else {
+        clearAuth()
+      }
+    } else {
+      clearAuth()
+    }
+  }
+
+  if (res.status === 204) return undefined as T
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
 
 async function rawRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = { 'Content-Type': 'application/json', ...(options.headers as Record<string, string>) }
@@ -66,6 +114,22 @@ export const authApi = {
     }),
   getProfile: () =>
     request<{ first_name: string; last_name: string; avatar: string | null; gender: number | null }>('/accounts/api/v1/profile/details/'),
+  updateProfile: (data: { first_name?: string; last_name?: string; gender?: number | null; avatarFile?: File | null }) => {
+   type ProfileResponse = { pk: number; first_name: string; last_name: string; gender: number | null; avatar: string | null; username: string }
+   const { avatarFile, ...rest } = data
+   if (avatarFile) {
+     const formData = new FormData()
+     if (rest.first_name !== undefined) formData.set('first_name', rest.first_name)
+     if (rest.last_name !== undefined) formData.set('last_name', rest.last_name)
+     if (rest.gender !== undefined && rest.gender !== null) formData.set('gender', String(rest.gender))
+     formData.set('avatar', avatarFile)
+     return requestMultipart<ProfileResponse>('/accounts/api/v1/profile/update/', formData)
+   }
+   return request<ProfileResponse>('/accounts/api/v1/profile/update/', {
+     method: 'PATCH',
+    body: JSON.stringify(rest),
+   })
+ },
   register: (username: string, password: string, password1: string) =>
     request<{ username: string }>('/accounts/registration/', {
       method: 'POST',

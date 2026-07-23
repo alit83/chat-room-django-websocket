@@ -5,7 +5,7 @@ import { resolveParticipantName, type ParticipantInfo } from '../lib/participant
 import { useChatStore, useFilteredChats, useActiveChat } from '../hooks/useChatStore'
 import { useAuthStore } from '../hooks/useAuthStore'
 import { useWebSocket } from '../hooks/useWebSocket'
-import { roomsApi } from '../lib/api'
+import { roomsApi, resolveMediaUrl } from '../lib/api'
 import { SearchBar } from './Sidebar/SearchBar'
 import { ChatList } from './Sidebar/ChatList'
 import { ChatHeader } from './ChatPanel/ChatHeader'
@@ -13,6 +13,8 @@ import { MessageList } from './ChatPanel/MessageList'
 import { MessageInput } from './ChatPanel/MessageInput'
 import { cn } from '../lib/cn'
 import { useNotificationSocket } from '../hooks/useNotificationSocket'
+import { AccountCard } from './Sidebar/AccountCard'
+import { ProfileEditModal } from './Sidebar/ProfileEditModal'
 
 
 
@@ -29,8 +31,10 @@ export function ChatLayout() {
 
   const [roomDetailsById, setRoomDetailsById] = useState<Record<string, RoomDetail>>({})
   const [isRoomInfoOpen, setIsRoomInfoOpen] = useState(false)
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false)
   const onlinePresence = useChatStore((s) => s.onlinePresence)
   const showChatOnMobile = !!activeChatId
+
 
   // Load rooms on mount
   useEffect(() => {
@@ -68,6 +72,43 @@ export function ChatLayout() {
     })
     return map
  }, [activeChat?.id, roomDetailsById])
+
+   // After you edit your own profile, patch every cached room's participant
+ // list so RoomInfoPanel/typing/header reflect it immediately, without
+ // needing to refetch. This only updates YOUR local view — other users
+ // won't see it live until they reopen the room (no backend broadcast
+ // exists for profile changes yet).
+ const handleProfileSaved = (updated: { pk: number; first_name: string; last_name: string; gender: number | null; avatar: string | null }) => {
+   setRoomDetailsById((prev) => {
+     const next: typeof prev = {}
+     for (const [roomId, detail] of Object.entries(prev)) {
+       next[roomId] = {
+         ...detail,
+         participants: detail.participants.map((p) =>
+           p.pk === updated.pk
+             ? { ...p, first_name: updated.first_name, last_name: updated.last_name, gender: updated.gender, avatar: updated.avatar }
+             : p,
+         ),
+       }
+     }
+     return next
+   })
+ }
+
+ const activeRoomDetail = activeChat ? roomDetailsById[activeChat.id] : undefined
+ const headerAvatarUrl = activeRoomDetail
+   ? (activeRoomDetail.model === 1
+       ? resolveMediaUrl(activeRoomDetail.participants.find((p) => String(p.pk) !== String(user?.id))?.avatar)
+       : resolveMediaUrl(activeRoomDetail.profile))
+   : null
+
+ const currentUserName = user
+   ? (`${user.first_name} ${user.last_name}`.trim() || user.username)
+   : ''
+
+ const handleLogout = () => {
+   useAuthStore.getState().clearAuth()
+ }
 
 
  const handleSend = (text: string) => {
@@ -111,18 +152,10 @@ export function ChatLayout() {
         )}
       >
         <div className="border-b border-[var(--border)] px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold tracking-tight">
-              <span className="text-[var(--text-primary)]">Chat</span>
-              <span className="text-[var(--accent)]">Room</span>
-            </h1>
-            <button
-              onClick={() => useAuthStore.getState().clearAuth()}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-            >
-              Logout
-            </button>
-          </div>
+           <h1 className="text-xl font-bold tracking-tight">
+            <span className="text-[var(--text-primary)]">Chat</span>
+            <span className="text-[var(--accent)]">Room</span>
+           </h1>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
             Messages · Black & Red
           </p>
@@ -144,6 +177,16 @@ export function ChatLayout() {
             onSelect={selectChat}
           />
         )}
+        {user && (
+          <AccountCard
+            name={currentUserName}
+            username={user.username}
+            avatarSrc={resolveMediaUrl(user.avatar)}
+            avatarLabel={currentUserName}
+            onEditProfile={() => setIsProfileEditOpen(true)}
+            onLogout={handleLogout}
+          />
+        )}
       </aside>
 
       {/* Main panel */}
@@ -163,6 +206,7 @@ export function ChatLayout() {
               onBack={clearActiveChat}
               typingNames={typingNames}
               onOpenInfo={() => setIsRoomInfoOpen(true)}
+              avatarSrc={headerAvatarUrl}
             />
             <RoomInfoPanel
              isOpen={isRoomInfoOpen}
@@ -216,6 +260,11 @@ export function ChatLayout() {
           </div>
         )}
       </main>
+      <ProfileEditModal
+       isOpen={isProfileEditOpen}
+       onClose={() => setIsProfileEditOpen(false)}
+       onSaved={handleProfileSaved}
+     />
     </div>
   )
 }

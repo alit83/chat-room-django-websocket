@@ -7,6 +7,7 @@ type ChatHeaderProps = {
   onBack?: () => void
   typingNames?: string[]
   onOpenInfo?: () => void
+  avatarSrc?: string | null
 }
 
 function formatTypingLabel(names: string[]): string {
@@ -22,6 +23,7 @@ export function ChatHeader({
   onBack,
   typingNames = [],
   onOpenInfo,
+  avatarSrc,
 }: ChatHeaderProps) {
   const isTyping = typingNames.length > 0
   return (
@@ -46,7 +48,7 @@ export function ChatHeader({
         disabled={!onOpenInfo}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1 text-left transition-colors hover:bg-white/[0.03] disabled:cursor-default disabled:hover:bg-transparent"
       >
-        <Avatar label={user.avatar} online={user.online} size="lg" />
+         <Avatar label={user.avatar} src={avatarSrc} online={user.online} size="lg" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-semibold text-[var(--text-primary)]">
             {user.name}

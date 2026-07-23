@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import type { RoomDetail } from '../../lib/api'
 import { Avatar } from '../ui/Avatar'
 import { cn } from '../../lib/cn'
+import { resolveMediaUrl } from '../../lib/api'
 
 type PresenceMap = Record<string, { online: boolean; lastSeen?: string }>
 
@@ -100,9 +101,22 @@ export function RoomInfoPanel({ isOpen, onClose, room, loading, currentUserId, o
 
         <div className="custom-scrollbar flex-1 overflow-y-auto">
           <div className="flex flex-col items-center gap-3 border-b border-[var(--border)] px-6 py-8">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-red-900 text-3xl font-bold text-white shadow-lg shadow-red-950/40 ring-4 ring-black/20">
-              {title.slice(0, 2).toUpperCase()}
-            </div>
+           {(() => {
+             const heroAvatarUrl = isPv
+               ? resolveMediaUrl(otherParticipant?.avatar)
+               : resolveMediaUrl(room?.profile)
+             return heroAvatarUrl ? (
+               <img
+                 src={heroAvatarUrl}
+                 alt={title}
+                 className="h-24 w-24 rounded-full object-cover shadow-lg shadow-black/40 ring-4 ring-black/20"
+               />
+             ) : (
+               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-red-900 text-3xl font-bold text-white shadow-lg shadow-red-950/40 ring-4 ring-black/20">
+                 {title.slice(0, 2).toUpperCase()}
+               </div>
+             )
+           })()}
             <div className="flex flex-col items-center gap-1 text-center">
               <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
               {subtitle && (
@@ -127,7 +141,7 @@ export function RoomInfoPanel({ isOpen, onClose, room, loading, currentUserId, o
                   const presence = onlinePresence[String(p.pk)]
                   return (
                     <div key={p.pk} className="flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-white/[0.04]">
-                      <Avatar label={fullName(p)} online={presence?.online} size="md" />
+                       <Avatar label={fullName(p)} src={resolveMediaUrl(p.avatar)} online={presence?.online} size="md" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-[var(--text-primary)]">
                           {fullName(p)}

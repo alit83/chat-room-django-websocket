@@ -34,19 +34,7 @@ body {
   overflow: hidden;
 }
 
-@media (pointer: fine) {
-  body.custom-cursor-active {
-    cursor: none;
-  }
 
-  body.custom-cursor-active button,
-  body.custom-cursor-active a,
-  body.custom-cursor-active [data-cursor='pointer'],
-  body.custom-cursor-active input,
-  body.custom-cursor-active textarea {
-    cursor: none;
-  }
-}
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -150,3 +138,5 @@ body {
 .animate-panel-in {
   animation: panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+
