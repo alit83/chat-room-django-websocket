@@ -12,8 +12,41 @@ type MessageBubbleProps = {
   isRoomCreator?: boolean
   onEdit?: (id: string | number, text: string) => void
   onDelete?: (id: string | number) => void
+  onJoinLink?: (link: string) => void
   participants?: Record<string, ParticipantInfo>
   allMessages?: Message[]
+}
+
+// Splits text on @link tokens and renders them as clickable links.
+const LINK_RE = /(?:^|\s)@(\S+)/g
+
+function RenderMessageText({ text, onJoinLink }: { text: string; onJoinLink?: (link: string) => void }) {
+  if (!onJoinLink) return text
+  const parts: React.ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  LINK_RE.lastIndex = 0
+  while ((match = LINK_RE.exec(text)) !== null) {
+    const leadingSpace = match[0].charAt(0) === ' ' ? ' ' : ''
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+    const link = match[1]
+    parts.push(leadingSpace)
+    parts.push(
+      <span
+        key={match.index}
+        className="cursor-pointer font-semibold text-[var(--accent)] underline decoration-dotted underline-offset-2 hover:opacity-80"
+        role="link"
+        tabIndex={0}
+        onClick={() => onJoinLink(link)}
+        onKeyDown={(e) => { if (e.key === 'Enter') onJoinLink(link) }}
+      >
+        @{link}
+      </span>,
+    )
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+  return parts
 }
 
 // Messages loaded via REST pagination don't carry a real numeric id from the
@@ -29,6 +62,7 @@ export function MessageBubble({
   isRoomCreator = false,
   onEdit,
   onDelete,
+  onJoinLink,
   participants = {},
   allMessages = [],
 }: MessageBubbleProps) {
@@ -130,7 +164,7 @@ export function MessageBubble({
               </div>
             </div>
           ) : (
-            message.text
+            <RenderMessageText text={message.text} onJoinLink={onJoinLink} />
           )}
         </div>
 

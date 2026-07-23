@@ -220,5 +220,5 @@ export const roomsApi = {
   delete: (id: number) =>
     request<void>(`/rooms/api/v1/room-delete/${id}/`, { method: 'DELETE' }),
   joinByLink: (link: string) =>
-     request<void>(`/rooms/api/v1/room/${link}/link/`, { method: 'POST' }),
+     request<RoomDetail>(`/rooms/api/v1/room/${link}/link/`, { method: 'POST' }),
 }

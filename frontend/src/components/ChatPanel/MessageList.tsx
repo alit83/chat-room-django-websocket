@@ -8,6 +8,7 @@ type MessageListProps = {
   isRoomCreator?: boolean
   onEditMessage?: (id: string | number, text: string) => void
   onDeleteMessage?: (id: string | number) => void
+  onJoinLink?: (link: string) => void
   participants?: Record<string, ParticipantInfo>
   currentUserId?: string | number | null
   // Called with the numeric ids of messages that just became visible on
@@ -36,6 +37,7 @@ export function MessageList({
   isRoomCreator = false,
   onEditMessage,
   onDeleteMessage,
+  onJoinLink,
   participants = {},
   currentUserId = null,
   onMessagesRead,
@@ -176,6 +178,7 @@ export function MessageList({
               isRoomCreator={isRoomCreator}
               onEdit={onEditMessage}
               onDelete={onDeleteMessage}
+              onJoinLink={onJoinLink}
               participants={participants}
               allMessages={messages}
             />

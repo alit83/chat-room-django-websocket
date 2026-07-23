@@ -148,8 +148,19 @@ export function ChatLayout() {
  }
 
   const handleTyping = (focused: boolean) => {
-   setTypingStatus(focused)
-  }
+     setTypingStatus(focused)
+   }
+
+  const handleJoinLink = async (link: string) => {
+    try {
+      const room = await roomsApi.joinByLink(link)
+      await loadRooms()
+      selectChat(String(room.id))
+    } catch (err: any) {
+      // ponytail: inline alert, add toast library if UX polish needed
+      alert(err?.message?.includes('403') ? 'This room is private.' : 'Could not join that room.')
+    }
+   }
 
   const typingNames = useMemo(() => {
     if (!activeChat?.typingUsers?.length) return []
@@ -253,6 +264,7 @@ export function ChatLayout() {
               isRoomCreator={isRoomCreator}
               onEditMessage={handleEditMessage}
               onDeleteMessage={handleDeleteMessage}
+              onJoinLink={handleJoinLink}
               participants={participants}
               currentUserId={user?.id ?? null}
              onMessagesRead={connected ? markAsRead : undefined}
