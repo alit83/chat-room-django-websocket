@@ -32,6 +32,7 @@ type ChatStore = {
   loadRooms: () => Promise<void>
   loadMessages: (roomId: number, page?: number, pageSize?: number) => Promise<void>
   applyRoomNotification: (roomId: number, text: string, createdAt: string) => void
+  updateChatMeta: (roomId: number, updates: { name?: string; avatarLabel?: string }) => void
 }
 
 function mapRoomToChat(room: Record<string, unknown>): ChatWithPagination {
@@ -195,6 +196,21 @@ export const useChatStore = create<ChatStore>((set) => ({
          lastSeen: lastSeen ?? state.onlinePresence[String(userId)]?.lastSeen,
        },
      },
+    })),
+  updateChatMeta: (roomId, updates) =>
+    set((state) => ({
+      chats: state.chats.map((c) =>
+        c.id === String(roomId)
+          ? {
+              ...c,
+              user: {
+                ...c.user,
+                ...(updates.name !== undefined ? { name: updates.name } : {}),
+                ...(updates.avatarLabel !== undefined ? { avatar: updates.avatarLabel } : {}),
+              },
+            }
+          : c,
+      ),
     })),
   addOptimisticMessage: (message) =>
     set((state) => ({

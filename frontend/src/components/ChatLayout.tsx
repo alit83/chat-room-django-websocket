@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import type { RoomDetail } from '../lib/api'
 import { RoomInfoPanel } from './ChatPanel/RoomInfoPanel'
 import { resolveParticipantName, type ParticipantInfo } from '../lib/participants'
 import { useChatStore, useFilteredChats, useActiveChat } from '../hooks/useChatStore'
@@ -15,6 +14,8 @@ import { cn } from '../lib/cn'
 import { useNotificationSocket } from '../hooks/useNotificationSocket'
 import { AccountCard } from './Sidebar/AccountCard'
 import { ProfileEditModal } from './Sidebar/ProfileEditModal'
+import type { RoomDetail, RoomItem } from '../lib/api'
+import { GroupEditModal } from './ChatPanel/GroupEditModal'
 
 
 
@@ -32,7 +33,9 @@ export function ChatLayout() {
   const [roomDetailsById, setRoomDetailsById] = useState<Record<string, RoomDetail>>({})
   const [isRoomInfoOpen, setIsRoomInfoOpen] = useState(false)
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false)
+  const [isGroupEditOpen, setIsGroupEditOpen] = useState(false)
   const onlinePresence = useChatStore((s) => s.onlinePresence)
+  const updateChatMeta = useChatStore((s) => s.updateChatMeta)
   const showChatOnMobile = !!activeChatId
 
 
@@ -110,7 +113,18 @@ export function ChatLayout() {
    useAuthStore.getState().clearAuth()
  }
 
-
+ const handleGroupSaved = (updated: RoomItem) => {
+   if (!activeChat) return
+   setRoomDetailsById((prev) => {
+     const existing = prev[activeChat.id]
+     if (!existing) return prev
+     return { ...prev, [activeChat.id]: { ...existing, name: updated.name, link: updated.link, profile: updated.profile } }
+   })
+   updateChatMeta(Number(activeChat.id), {
+     name: updated.name || undefined,
+     avatarLabel: (updated.name || '').slice(0, 2).toUpperCase(),
+   })
+ }
  const handleSend = (text: string) => {
     sendMessage(text)
   }
@@ -215,6 +229,7 @@ export function ChatLayout() {
              loading={!!activeChat && !roomDetailsById[activeChat.id]}
              currentUserId={user?.id ?? null}
              onlinePresence={onlinePresence}
+             onEditGroup={() => setIsGroupEditOpen(true)}
              />
              <MessageList
               isRoomCreator={isRoomCreator}
@@ -264,6 +279,12 @@ export function ChatLayout() {
        isOpen={isProfileEditOpen}
        onClose={() => setIsProfileEditOpen(false)}
        onSaved={handleProfileSaved}
+     />
+      <GroupEditModal
+       isOpen={isGroupEditOpen}
+       onClose={() => setIsGroupEditOpen(false)}
+       room={activeChat ? roomDetailsById[activeChat.id] ?? null : null}
+       onSaved={handleGroupSaved}
      />
     </div>
   )

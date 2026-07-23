@@ -185,17 +185,29 @@ export const roomsApi = {
   list: () => request<RoomItem[]>('/rooms/api/v1/room-list/'),
   detail: (id: number) => request<RoomDetail>(`/rooms/api/v1/room-detail/${id}/`),
   create: (data: { name: string; link: string; participants: number[]; model: number; profile?: string }) =>
-    request<RoomItem>('/rooms/room-create/', {
+    request<RoomItem>('/rooms/api/v1/room-create/', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: number, data: { name?: string; link?: string; participants?: number[]; profile?: string }) =>
-    request<RoomItem>(`/rooms/room-update/${id}/`, {
+   update: (id: number, data: { name?: string; link?: string; participants?: number[]; profileFile?: File | null }) => {
+    const { profileFile, ...rest } = data
+    if (profileFile) {
+      const formData = new FormData()
+      if (rest.name !== undefined) formData.set('name', rest.name)
+      if (rest.link !== undefined) formData.set('link', rest.link)
+      if (rest.participants !== undefined) {
+        rest.participants.forEach((pid) => formData.append('participants', String(pid)))
+      }
+      formData.set('profile', profileFile)
+      return requestMultipart<RoomItem>(`/rooms/api/v1/room-update/${id}/`, formData)
+    }
+    return request<RoomItem>(`/rooms/api/v1/room-update/${id}/`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
+      body: JSON.stringify(rest),
+    })
+  },
   delete: (id: number) =>
-    request<void>(`/rooms/room-delete/${id}/`, { method: 'DELETE' }),
+    request<void>(`/rooms/api/v1/room-delete/${id}/`, { method: 'DELETE' }),
   joinByLink: (link: string) =>
-    request<void>(`/rooms/room/${link}/link/`, { method: 'POST' }),
+     request<void>(`/rooms/api/v1/room/${link}/link/`, { method: 'POST' }),
 }
