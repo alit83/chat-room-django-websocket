@@ -184,11 +184,22 @@ export type RoomDetail = {
 export const roomsApi = {
   list: () => request<RoomItem[]>('/rooms/api/v1/room-list/'),
   detail: (id: number) => request<RoomDetail>(`/rooms/api/v1/room-detail/${id}/`),
-  create: (data: { name: string; link: string; participants: number[]; model: number; profile?: string }) =>
-    request<RoomItem>('/rooms/api/v1/room-create/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+   create: (data: { name: string; link: string; participants: number[]; model: number; profileFile?: File | null }) => {
+   const { profileFile, ...rest } = data
+   if (profileFile) {
+     const formData = new FormData()
+     formData.set('name', rest.name)
+     formData.set('link', rest.link)
+     rest.participants.forEach((pid) => formData.append('participants', String(pid)))
+     formData.set('model', String(rest.model))
+     formData.set('profile', profileFile)
+     return requestMultipart<RoomItem>('/rooms/api/v1/room-create/', formData)
+   }
+   return request<RoomItem>('/rooms/api/v1/room-create/', {
+     method: 'POST',
+     body: JSON.stringify(rest),
+   })
+ },
    update: (id: number, data: { name?: string; link?: string; participants?: number[]; profileFile?: File | null }) => {
     const { profileFile, ...rest } = data
     if (profileFile) {

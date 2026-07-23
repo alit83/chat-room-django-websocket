@@ -16,7 +16,7 @@ import { AccountCard } from './Sidebar/AccountCard'
 import { ProfileEditModal } from './Sidebar/ProfileEditModal'
 import type { RoomDetail, RoomItem } from '../lib/api'
 import { GroupEditModal } from './ChatPanel/GroupEditModal'
-
+import { CreateGroupModal } from './Sidebar/CreateGroupModal'
 
 
 
@@ -34,6 +34,7 @@ export function ChatLayout() {
   const [isRoomInfoOpen, setIsRoomInfoOpen] = useState(false)
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false)
   const [isGroupEditOpen, setIsGroupEditOpen] = useState(false)
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false)
   const onlinePresence = useChatStore((s) => s.onlinePresence)
   const updateChatMeta = useChatStore((s) => s.updateChatMeta)
   const showChatOnMobile = !!activeChatId
@@ -112,7 +113,10 @@ export function ChatLayout() {
  const handleLogout = () => {
    useAuthStore.getState().clearAuth()
  }
-
+ const handleGroupCreated = async (created: RoomItem) => {
+   await loadRooms()
+   selectChat(String(created.id))
+ }
  const handleGroupSaved = (updated: RoomItem) => {
    if (!activeChat) return
    setRoomDetailsById((prev) => {
@@ -166,10 +170,24 @@ export function ChatLayout() {
         )}
       >
         <div className="border-b border-[var(--border)] px-4 py-4">
+            <div className="flex items-center justify-between">
            <h1 className="text-xl font-bold tracking-tight">
-            <span className="text-[var(--text-primary)]">Chat</span>
-            <span className="text-[var(--accent)]">Room</span>
+             <span className="text-[var(--text-primary)]">Chat</span>
+             <span className="text-[var(--accent)]">Room</span>
            </h1>
+           <button
+             type="button"
+             onClick={() => setIsCreateGroupOpen(true)}
+             data-cursor="pointer"
+             aria-label="Create group"
+             title="Create group"
+             className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--accent)]"
+           >
+             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+             </svg>
+           </button>
+          </div>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
             Messages · Black & Red
           </p>
@@ -285,6 +303,11 @@ export function ChatLayout() {
        onClose={() => setIsGroupEditOpen(false)}
        room={activeChat ? roomDetailsById[activeChat.id] ?? null : null}
        onSaved={handleGroupSaved}
+     />
+     <CreateGroupModal
+       isOpen={isCreateGroupOpen}
+       onClose={() => setIsCreateGroupOpen(false)}
+       onCreated={handleGroupCreated}
      />
     </div>
   )
