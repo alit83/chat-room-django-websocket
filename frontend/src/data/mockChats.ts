@@ -4,6 +4,7 @@ export type User = {
   id: string
   name: string
   avatar: string
+  avatarSrc?: string | null
   online?: boolean
 }
 export type ReadReceipt = { userId: string; readAt: string }

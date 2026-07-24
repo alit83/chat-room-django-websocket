@@ -24,7 +24,7 @@ export function ChatListItem({ chat, isActive, onSelect }: ChatListItemProps) {
       {isActive && (
         <span className="animate-active-border absolute left-0 top-0 h-full w-1 origin-top rounded-r bg-[var(--accent)]" />
       )}
-      <Avatar label={chat.user.avatar} online={chat.user.online} />
+      <Avatar label={chat.user.avatar} src={chat.user.avatarSrc} online={chat.user.online} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span className="truncate font-medium text-[var(--text-primary)]">

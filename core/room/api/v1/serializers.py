@@ -5,9 +5,11 @@ from room.models import Room , ModelType
 class RoomListSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
     last_message_at = serializers.SerializerMethodField()
+    pv_avatar = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
     class Meta:
         model = Room
-        fields = ['id','name','link','model','creator','participants','profile','created_date','updated_date', 'last_message', 'last_message_at']
+        fields = ['id','name','link','model','pv_avatar','creator','participants','profile','created_date','updated_date', 'last_message', 'last_message_at']
 
     def get_last_message(self,obj):
             return getattr(obj,'last_message_text',None)
@@ -16,6 +18,25 @@ class RoomListSerializer(serializers.ModelSerializer):
             value = getattr(obj, 'last_message_at', None)
             return value.isoformat() if value else None
 
+    def get_pv_avatar(self,obj):
+        if obj.model == ModelType.pv.value:
+            user_pk = self.context["request"].user.pk
+            friend = obj.participants.exclude(pk=user_pk).first()
+            if friend and friend.avatar:
+                return friend.avatar.url
+            return None
+        else:
+            return None
+    def get_name(self,obj):
+        if obj.model == ModelType.pv.value:
+            user_pk = self.context["request"].user.pk
+            friend = obj.participants.exclude(pk=user_pk).first()
+            if not friend:
+                return None
+            if friend.first_name or friend.last_name:
+                return f"{friend.first_name} {friend.last_name}".strip()
+            return friend.user.username
+        return obj.name
 class BaseRoomSerializer(serializers.ModelSerializer):
     name = serializers.CharField(allow_null=True)
     link = serializers.SlugField(allow_null=True)

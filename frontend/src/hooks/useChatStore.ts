@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { initialChats, type Chat, type Message } from '../data/mockChats'
-import { roomsApi, messagesApi } from '../lib/api'
+import { roomsApi, messagesApi, resolveMediaUrl } from '../lib/api'
+import { useAuthStore } from './useAuthStore'
 
 type ChatWithPagination = Chat & {
   currentPage: number
@@ -37,16 +38,38 @@ type ChatStore = {
 
 function mapRoomToChat(room: Record<string, unknown>): ChatWithPagination {
   const profile = room.profile || null
+  const pvAvatarRaw = room.pv_avatar as string | null | undefined
+  const isPv = room.model === 1
+  const participants = room.participants as number[] | undefined
+
   const name = (room.name as string) || (profile ? `${(profile as Record<string, string>).first_name} ${(profile as Record<string, string>).last_name}`.trim() : 'Unknown')
   const avatar = (profile as Record<string, string>)?.avatar ? '👤' : name.slice(0, 2).toUpperCase()
-  const online = (room.participants as Array<Record<string, unknown>>)?.some((p) => p.online) ?? false
+
+  // For PV rooms: user.id = friend's PK so presence updates match,
+  // online starts false (WebSocket toggles it). Groups: no dot.
+  let userId: string
+  let online: boolean | undefined
+  let avatarSrc: string | null = null
+  const currentUser = useAuthStore.getState().user
+
+  if (isPv && currentUser?.id) {
+    const friendPk = participants?.find((pid) => String(pid) !== String(currentUser.id))
+    userId = friendPk != null ? String(friendPk) : String(room.id)
+    online = false
+    avatarSrc = resolveMediaUrl(pvAvatarRaw ?? null)
+  } else {
+    userId = String(room.id)
+    online = undefined // ponytail: no dot for group rooms
+    avatarSrc = resolveMediaUrl(room.profile as string | null)
+  }
 
   return {
     id: String(room.id),
     user: {
-      id: String(room.id),
+      id: userId,
       name,
       avatar,
+      avatarSrc,
       online,
     },
     messages: [],
@@ -185,7 +208,7 @@ export const useChatStore = create<ChatStore>((set) => ({
       chats: state.chats.map((c) => ({
         ...c,
         user:
-          c.user.id === String(userId)
+          c.user.id === String(userId) && c.user.online !== undefined
             ? { ...c.user, online: isOnline }
             : c.user,
       })),

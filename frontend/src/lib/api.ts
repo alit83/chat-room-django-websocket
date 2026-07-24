@@ -164,6 +164,7 @@ export type RoomItem = {
   name: string | null
   link: string | null
   model: number
+  pv_avatar: string | null
   creator: number
   participants: number[]
   profile: string | null
