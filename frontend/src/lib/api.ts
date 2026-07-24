@@ -169,6 +169,8 @@ export type RoomItem = {
   profile: string | null
   created_date: string
   updated_date: string
+  last_message: string | null
+  last_message_at: string | null
 }
 
 export type RoomDetail = {

@@ -3,9 +3,18 @@ from accounts.api.v1.serializers import ProfileSerializer
 from room.models import Room , ModelType
 
 class RoomListSerializer(serializers.ModelSerializer):
+    last_message = serializers.SerializerMethodField()
+    last_message_at = serializers.SerializerMethodField()
     class Meta:
         model = Room
-        fields = '__all__'
+        fields = ['id','name','link','model','creator','participants','profile','created_date','updated_date', 'last_message', 'last_message_at']
+
+    def get_last_message(self,obj):
+            return getattr(obj,'last_message_text',None)
+
+    def get_last_message_at(self, obj):
+            value = getattr(obj, 'last_message_at', None)
+            return value.isoformat() if value else None
 
 class BaseRoomSerializer(serializers.ModelSerializer):
     name = serializers.CharField(allow_null=True)

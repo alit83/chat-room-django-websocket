@@ -7,6 +7,8 @@ from rest_framework import status
 from room.models import Room ,ModelType
 from .permissions import IsRoomCreator
 from django.shortcuts import get_object_or_404
+from django.db.models import OuterRef, Subquery
+from message.models import Message
 
 
 class RoomListApiView(ListAPIView):
@@ -14,7 +16,10 @@ class RoomListApiView(ListAPIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        queryset =  Room.objects.filter(participants = self.request.user.pk).prefetch_related("participants")
+        
+        last_message_qs = Message.objects.filter(room=OuterRef('pk')).order_by('-created_date')
+        queryset =  (Room.objects.filter(participants = self.request.user.pk).prefetch_related("participants").annotate(last_message_text=Subquery(last_message_qs.values('text')[:1]),
+        last_message_at=Subquery(last_message_qs.values('created_date')[:1])).order_by('-last_message_at'))
         return queryset
 
 class RoomCreateApiView(CreateAPIView):
