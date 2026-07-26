@@ -21,3 +21,8 @@ drf-spectacular
 
 
 django-cors-headers==4.9.0
+
+
+#test module
+pytest==9.1.1 
+pytest-django==4.12.0

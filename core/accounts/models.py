@@ -66,8 +66,8 @@ class Profile(models.Model):
     user = models.OneToOneField(
         "User", on_delete=models.CASCADE, related_name="user_profile"
     , primary_key=True)
-    first_name = models.CharField(max_length=250)
-    last_name = models.CharField(max_length=250)
+    first_name = models.CharField(max_length=250 , null=True , blank=True)
+    last_name = models.CharField(max_length=250 , null=True , blank=True)
     avatar = models.ImageField(
         upload_to="profiles/", null=True , blank=True
     )
