@@ -1,7 +1,7 @@
-from django.urls import include , path
+from django.urls import include, path
 
-app_name ='message'
+app_name = "messages"
 
-urlpatterns=[
+urlpatterns = [
     path("api/v1/", include("message.api.v1.urls")),
 ]

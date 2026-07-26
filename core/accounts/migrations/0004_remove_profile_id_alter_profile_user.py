@@ -8,17 +8,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0003_rename_profile_profile_avatar'),
+        ("accounts", "0003_rename_profile_profile_avatar"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='profile',
-            name='id',
+            model_name="profile",
+            name="id",
         ),
         migrations.AlterField(
-            model_name='profile',
-            name='user',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='user_profile', serialize=False, to=settings.AUTH_USER_MODEL),
+            model_name="profile",
+            name="user",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE,
+                primary_key=True,
+                related_name="user_profile",
+                serialize=False,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

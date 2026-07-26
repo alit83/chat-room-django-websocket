@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
-from accounts.models import User , Profile
+from accounts.models import User, Profile
 from django.core import exceptions
 
 
@@ -20,22 +20,32 @@ class SignUpApiSerializer(serializers.ModelSerializer):
         try:
             validate_password(attrs.get("password"))
         except exceptions.ValidationError as e:
-            raise serializers.ValidationError({"password": list(e.message)})
+            raise serializers.ValidationError({"password": list(e.messages)})
         return super().validate(attrs)
 
     def create(self, validated_data):
         validated_data.pop("password1", None)
         return User.objects.create_user(**validated_data)
 
+
 class CustomeTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         validated_data = super().validate(attrs)
-        validated_data['username'] = self.user.username
-        validated_data['user_id'] = self.user.pk    
+        validated_data["username"] = self.user.username
+        validated_data["user_id"] = self.user.pk
         return validated_data
-    
+
+
 class ProfileSerializer(serializers.ModelSerializer):
-    username = serializers.ReadOnlyField(source='user.username')
+    username = serializers.ReadOnlyField(source="user.username")
+
     class Meta:
         model = Profile
-        fields = ['pk','first_name','last_name','gender','avatar','username']
+        fields = [
+            "pk",
+            "first_name",
+            "last_name",
+            "gender",
+            "avatar",
+            "username",
+        ]

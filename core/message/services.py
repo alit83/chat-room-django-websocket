@@ -1,9 +1,11 @@
-from message.models import Message , MessageRead
+from message.models import Message, MessageRead
 from channels.db import database_sync_to_async
 from rest_framework.exceptions import ValidationError
 from core.redis import redis
 from room.models import Room
 from django.db.models import Q
+from django.conf import settings
+
 
 class MessageService:
 
@@ -14,109 +16,123 @@ class MessageService:
             room=room,
             text=text.strip(),
         )
-    
+
     @staticmethod
-    async def edit_message(*,user_id,message_id,new_message):
+    async def edit_message(*, user_id, message_id, new_message):
         try:
-            message_obj = await Message.objects.aget(id=message_id,sender_id=user_id)
+            message_obj = await Message.objects.aget(
+                id=message_id, sender_id=user_id
+            )
         except Message.DoesNotExist:
             return None
         message_obj.text = new_message.strip()
-        await message_obj.asave(update_fields=['text'])
+        await message_obj.asave(update_fields=["text"])
         return message_obj
-    
 
     @staticmethod
-    @database_sync_to_async   
-    def delete_messages(*,message_ids,room,user_pk):
+    @database_sync_to_async
+    def delete_messages(*, message_ids, room, user_pk):
         """
-        Fetch and delete all messages where: the user is the sender OR the user is the creator of the room.
+        Fetch and delete all messages where: the user is
+        the sender OR the user is the creator of the room.
         """
-        messages = Message.objects.filter(Q(room=room) & Q(id__in=message_ids) & (Q(sender_id=user_pk) | Q(room__creator_id=user_pk))).only("id")
+        messages = Message.objects.filter(
+            Q(room=room)
+            & Q(id__in=message_ids)
+            & (Q(sender_id=user_pk) | Q(room__creator_id=user_pk))
+        ).only("id")
         if messages.count() != len(message_ids):
             raise ValidationError(
-            {"message_ids": ["Some messages are invalid for deletion."]}
+                {"message_ids": ["Some messages are invalid for deletion."]}
             )
         messages.delete()
 
     @staticmethod
-    async def get_other_participants(*,room,user_pk):
+    async def get_other_participants(*, room, user_pk):
         return [
-            pid async for pid in (room.participants.exclude(pk=user_pk).values_list("pk", flat = True))
+            pid
+            async for pid in (
+                room.participants.exclude(pk=user_pk).values_list(
+                    "pk", flat=True
+                )
+            )
         ]
-    
-
-            
-
 
     @staticmethod
-    @database_sync_to_async   
-    def read_messages(*,message_ids,room,user_pk):
-        messages = Message.objects.filter(room = room , id__in = message_ids).only("id")
+    @database_sync_to_async
+    def read_messages(*, message_ids, room, user_pk):
+        messages = Message.objects.filter(room=room, id__in=message_ids).only(
+            "id"
+        )
         if messages.count() != len(set(message_ids)):
             raise ValidationError(
-            {"message_ids": ["Some messages are invalid."]}
+                {"message_ids": ["Some messages are invalid."]}
             )
-            
+
         """
-        find read messages and exclude their message IDs from setting them as read
+        find read messages and exclude their
+        message IDs from setting them as read
         """
         existing = set(
-    MessageRead.objects.filter(
-        user_id=user_pk,
-        message_id__in=messages,
-    ).values_list("message_id", flat=True)
-)
+            MessageRead.objects.filter(
+                user_id=user_pk,
+                message_id__in=messages,
+            ).values_list("message_id", flat=True)
+        )
         new_ids = list(set(message_ids) - existing)
         reads = [
-        MessageRead(
-        user_id=user_pk,
-        message_id=message_id,
-    )
-    
-    for message_id in new_ids
-]
-        MessageRead.objects.bulk_create(
-        reads
-)
+            MessageRead(
+                user_id=user_pk,
+                message_id=message_id,
+            )
+            for message_id in new_ids
+        ]
+        MessageRead.objects.bulk_create(reads)
         return new_ids
-    
-class PresenceService():
+
+
+class PresenceService:
     @staticmethod
-    async def connect(*,user_id):
+    async def connect(*, user_id):
         # Create or increment the user's active connection count in Redis.
-        PRESENCE_TTL=60
+        PRESENCE_TTL = 60
         key = f"user:{user_id}:connections"
         connetions = await redis.incr(key)
         await redis.expire(
-    key,
-    PRESENCE_TTL,
-)   
+            key,
+            PRESENCE_TTL,
+        )  # just for testing
+        if settings.TESTING:
+            await redis.aclose()
         return connetions
 
     @staticmethod
-    async def disconnect(*,user_id):
-        # Deincrement the user's active connection count in Redis and if goes to zero delete it.
+    async def disconnect(*, user_id):
+        # Deincrement the user's active connection count in
+        # Redis and if goes to zero delete it.
         connections = await redis.decr(f"user:{user_id}:connections")
 
         if connections <= 0:
             await redis.delete(f"user:{user_id}:connections")
-
+        # just for testing
+        if settings.TESTING:
+            await redis.aclose()
         return max(connections, 0)
 
     @staticmethod
-    async def rooms_id(*,user_id):
-        room_qs = Room.objects.filter(
-            participants=user_id
-            ).values_list("id", flat=True)
+    async def rooms_id(*, user_id):
+        room_qs = Room.objects.filter(participants=user_id).values_list(
+            "id", flat=True
+        )
         return [room_id async for room_id in room_qs]
+
     @staticmethod
-    async def heartbeat(*,user_id):
+    async def heartbeat(*, user_id):
         """
         refresh the user's connection count
         """
-        PRESENCE_TTL=60
+        PRESENCE_TTL = 60
         await redis.expire(
-        f"user:{user_id}:connections",
-        PRESENCE_TTL,
-    )   
+            f"user:{user_id}:connections",
+            PRESENCE_TTL,
+        )

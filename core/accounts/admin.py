@@ -2,13 +2,14 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from accounts.models import Profile
 from django.contrib.auth import get_user_model
+
 User = get_user_model()
 
 
 # Register your models here.
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_display = ['id',"username", "is_active", "is_superuser"]
+    list_display = ["id", "username", "is_active", "is_superuser"]
     list_filter = ["username", "is_active", "is_superuser"]
     search_fields = ("username",)
     ordering = ("username",)
@@ -61,13 +62,9 @@ class CustomUserAdmin(UserAdmin):
 
 
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = [ "user", "gender", "first_name","last_name"]
+    list_display = ["user", "gender", "first_name", "last_name"]
     search_fields = ("user",)
 
 
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Profile, ProfileAdmin)
-
-
-
-

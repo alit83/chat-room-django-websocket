@@ -1,6 +1,4 @@
 from urllib.parse import parse_qs
-
-from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
 from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.tokens import AccessToken
@@ -13,7 +11,7 @@ User = get_user_model()
 
 async def get_user(user_id):
     """
-    this function do query to get user if exist with async orm 
+    this function do query to get user if exist with async orm
     """
     try:
         return await User.objects.aget(pk=user_id)
@@ -23,10 +21,11 @@ async def get_user(user_id):
 
 class JWTAuthMiddleware(BaseMiddleware):
     """
-    websocket middleware for jwt authentication 
+    websocket middleware for jwt authentication
 
     get the token  from websocket connections and check the validation
     """
+
     async def __call__(self, scope, receive, send):
         query_string = parse_qs(scope["query_string"].decode())
 
@@ -35,7 +34,6 @@ class JWTAuthMiddleware(BaseMiddleware):
         if not token:
             scope["user"] = AnonymousUser()
             return await super().__call__(scope, receive, send)
-
 
         token = token[0]
 

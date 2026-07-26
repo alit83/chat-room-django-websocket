@@ -9,9 +9,6 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
-
-
-
 class ProfileGender(models.IntegerChoices):
     male = 1, _("male")
     female = 2, _("female")
@@ -64,13 +61,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class Profile(models.Model):
     user = models.OneToOneField(
-        "User", on_delete=models.CASCADE, related_name="user_profile"
-    , primary_key=True)
-    first_name = models.CharField(max_length=250)
-    last_name = models.CharField(max_length=250)
-    avatar = models.ImageField(
-        upload_to="profiles/", null=True , blank=True
+        "User",
+        on_delete=models.CASCADE,
+        related_name="user_profile",
+        primary_key=True,
     )
+    first_name = models.CharField(max_length=250, null=True, blank=True)
+    last_name = models.CharField(max_length=250, null=True, blank=True)
+    avatar = models.ImageField(upload_to="profiles/", null=True, blank=True)
     gender = models.IntegerField(
         choices=ProfileGender.choices, null=True, blank=True
     )
