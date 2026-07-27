@@ -3,6 +3,7 @@ from room.models import Room , ModelType
 from accounts.models import User 
 from message.models import Message , MessageRead
 from django.db import IntegrityError , transaction
+
 pytestmark = pytest.mark.django_db
 
 
