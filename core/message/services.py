@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 from core.redis import redis
 from room.models import Room
 from django.db.models import Q
+from django.conf import settings
 
 class MessageService:
 
@@ -91,7 +92,9 @@ class PresenceService():
         await redis.expire(
     key,
     PRESENCE_TTL,
-)   
+)       #just for testing
+        if settings.TESTING:
+            await redis.aclose()
         return connetions
 
     @staticmethod
@@ -101,7 +104,9 @@ class PresenceService():
 
         if connections <= 0:
             await redis.delete(f"user:{user_id}:connections")
-
+        #just for testing
+        if settings.TESTING:
+            await redis.aclose()
         return max(connections, 0)
 
     @staticmethod

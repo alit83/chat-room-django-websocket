@@ -7,6 +7,7 @@ from core.asgi import application
 from message.models import Message
 from room.models import Room , ModelType
 from django.urls import reverse
+from core.redis import redis
 pytestmark = [
     pytest.mark.django_db(transaction=True),
     pytest.mark.asyncio,
@@ -45,31 +46,8 @@ def another_user_token(api_client):
     response = api_client.post(url, data)
     return response.data["access"]
 
-async def test_authenticated_user_can_connect(room, access_token):
-    communicator = WebsocketCommunicator(
-        application,
-        f"/ws/room/{room.pk}/?token={access_token}",
-    )
 
-    connected, _ = await communicator.connect()
-
-    assert connected is True
-
-    await communicator.disconnect()
-
-
-async def test_non_participant_cannot_connect(room, another_user_token):
-    communicator = WebsocketCommunicator(
-        application,
-        f"/ws/room/{room.pk}/?token={another_user_token}",
-    )
-
-    connected, _ = await communicator.connect()
-
-    assert connected is False
-    await communicator.disconnect()
-
-async def test_send_message_creates_message(room,access_token):
+async def test_send_message_creates_message(room,access_token,user):
     communicator = WebsocketCommunicator(
         application,
         f"/ws/room/{room.pk}/?token={access_token}",
@@ -86,8 +64,8 @@ async def test_send_message_creates_message(room,access_token):
         }
     )
 
-    _ = await communicator.receive_json_from()
-    response        =  await communicator.receive_json_from()
+    _  =  await communicator.receive_json_from()
+    response  =  await communicator.receive_json_from()
 
     assert response["message"] == "Hello"
 
@@ -96,4 +74,35 @@ async def test_send_message_creates_message(room,access_token):
         text="Hello"
     ).aexists()
 
+    
     await communicator.disconnect()
+
+
+
+
+async def test_authenticated_user_can_connect(room, access_token,user):
+    communicator = WebsocketCommunicator(
+        application,
+        f"/ws/room/{room.pk}/?token={access_token}",
+    )
+    # print(await redis.get(f"user:{user.pk}:connections"))
+    connected, _ = await communicator.connect()
+
+    assert connected is True
+    print(await redis.get(f"user:{user.pk}:connections"))
+    await communicator.disconnect()
+
+
+
+async def test_non_participant_cannot_connect(room, another_user_token):
+    communicator = WebsocketCommunicator(
+        application,
+        f"/ws/room/{room.pk}/?token={another_user_token}",
+    )
+
+    connected, _ = await communicator.connect()
+
+    
+    assert connected is False
+
+

@@ -161,7 +161,7 @@ REST_FRAMEWORK = {
     #throttling rate config
 
     "DEFAULT_THROTTLE_RATES": {
-        'user': '5/min'
+        'user': '20/min'
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -199,3 +199,5 @@ CACHES = {
 # just on development
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+TESTING = True
