@@ -14,7 +14,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
         self.room_id =  self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group_name = f"room_{self.room_id}"
-        print("conne")
         if self.user.is_anonymous:
             await self.close(code=4001)
             return
@@ -35,10 +34,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4004)
             return
     async def disconnect(self, close_code):
-        print("disconnect called")
         # Decrement the user's active connection count in Redis
         connections = await PresenceService.disconnect(user_id=self.user.pk)
-        print("remaining:", connections)
         await self.broadcast_presence(connections)
         await self.channel_layer.group_discard(
             self.room_group_name,

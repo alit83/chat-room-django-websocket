@@ -20,7 +20,7 @@ class SignUpApiSerializer(serializers.ModelSerializer):
         try:
             validate_password(attrs.get("password"))
         except exceptions.ValidationError as e:
-            raise serializers.ValidationError({"password": list(e.message)})
+            raise serializers.ValidationError({"password": list(e.messages)})
         return super().validate(attrs)
 
     def create(self, validated_data):

@@ -13,8 +13,8 @@ class SignUpApiView(generics.GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_obj = serializer.save()
-        email = user_obj.username
-        data = {"email": email}
+        username = user_obj.username
+        data = {"username": username}
 
         return Response(data, status=status.HTTP_201_CREATED)
     
