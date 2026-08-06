@@ -12,3 +12,4 @@ exclude =
     __init__,
     *_initial.py,
     asgi.py
+    migrations

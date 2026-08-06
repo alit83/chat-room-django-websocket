@@ -23,5 +23,37 @@ class Room(models.Model):
     profile = models.ImageField(
         upload_to="room_profile/", null=True, blank=True
     )
+    last_message = models.ForeignKey(
+        "message.Message",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="last_m",
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
+
+    def get_pv_friend(self, user):
+        if self.model != ModelType.pv:
+            return None
+
+        for participant in self.participants.all():
+            if participant.pk != user.pk:
+                return participant
+
+        return None
+
+    def get_pv_avatar(self, user):
+        friend = self.get_pv_friend(user)
+        if friend and friend.avatar:
+            return friend.avatar.url
+        return None
+
+    def get_display_name(self, user):
+        if self.model == ModelType.pv.value:
+            friend = self.get_pv_friend(user)
+            if not friend:
+                return None
+            if friend.first_name or friend.last_name:
+                return f"{friend.first_name} {friend.last_name}".strip()
+            return friend.user.username
+        return self.name

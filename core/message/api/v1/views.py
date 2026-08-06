@@ -12,6 +12,7 @@ class MessageListApiView(ListAPIView):
     pagination_class = MessagePagination
 
     def get_queryset(self):
+
         queryset = (
             Message.objects.filter(
                 room_id=self.kwargs["pk"],

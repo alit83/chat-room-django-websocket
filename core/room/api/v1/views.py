@@ -8,7 +8,6 @@ from rest_framework.generics import (
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .serializers import (
-    RoomListSerializer,
     RoomCreateSerializer,
     RoomUpdateSerializer,
     RoomDetailSerializer,
@@ -19,31 +18,70 @@ from rest_framework import status
 from room.models import Room, ModelType
 from .permissions import IsRoomCreator
 from django.shortcuts import get_object_or_404
-from django.db.models import OuterRef, Subquery
-from message.models import Message
+from django.core.cache import cache
 
 
 class RoomListApiView(ListAPIView):
-    serializer_class = RoomListSerializer
+
     permission_classes = [IsAuthenticated]
+    ROOM_META_TTL = 60 * 60 * 24  # 24 hours
 
     def get_queryset(self):
 
-        last_message_qs = Message.objects.filter(room=OuterRef("pk")).order_by(
-            "-created_date"
-        )
-        queryset = (
+        return (
             Room.objects.filter(participants=self.request.user.pk)
-            .prefetch_related("participants")
-            .annotate(
-                last_message_text=Subquery(last_message_qs.values("text")[:1]),
-                last_message_at=Subquery(
-                    last_message_qs.values("created_date")[:1]
-                ),
-            )
-            .order_by("-last_message_at")
+            .select_related("last_message", "creator")
+            .prefetch_related("participants__user")
+            .order_by("-last_message__created_date")
         )
-        return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        user = request.user
+        keys = [f"room:{room.pk}:meta" for room in queryset]
+        cached = cache.get_many(keys)
+
+        response = []
+        missing = {}
+        for room in queryset:
+            key = f"room:{room.pk}:meta"
+
+            meta = cached.get(key)
+
+            if meta is None:
+                meta = self.build_meta(room, user)
+
+                missing[key] = meta
+
+            last_msg = room.last_message
+            response.append(
+                {
+                    **meta,
+                    "last_message": last_msg.text if last_msg else None,
+                    "last_message_at": (
+                        last_msg.created_date if last_msg else None
+                    ),
+                }
+            )
+        if missing:
+            cache.set_many(missing, self.ROOM_META_TTL)
+
+        return Response(response)
+
+    def build_meta(self, room, user):
+
+        return {
+            "id": room.id,
+            "name": room.get_display_name(user),
+            "link": room.link,
+            "model": room.model,
+            "created_date": room.created_date,
+            "updated_date": room.updated_date,
+            "profile": room.profile.url if room.profile else None,
+            "creator": room.creator.pk,
+            "pv_avatar": room.get_pv_avatar(user),
+            "participants": [{"id": p.pk} for p in room.participants.all()],
+        }
 
 
 class RoomCreateApiView(CreateAPIView):

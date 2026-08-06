@@ -11,11 +11,14 @@ class MessageService:
 
     @staticmethod
     async def create_message(*, user, room, text):
-        return await Message.objects.acreate(
+        message = await Message.objects.acreate(
             sender_id=user.pk,
             room=room,
             text=text.strip(),
         )
+        room.last_message = message
+        await room.asave(update_fields=["last_message"])
+        return message
 
     @staticmethod
     async def edit_message(*, user_id, message_id, new_message):
@@ -25,7 +28,8 @@ class MessageService:
             )
         except Message.DoesNotExist:
             return None
-        message_obj.text = new_message.strip()
+        new_message = new_message.strip()
+        message_obj.text = new_message
         await message_obj.asave(update_fields=["text"])
         return message_obj
 
