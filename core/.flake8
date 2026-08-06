@@ -13,3 +13,4 @@ exclude =
     *_initial.py,
     asgi.py
     migrations
+    apps.py
